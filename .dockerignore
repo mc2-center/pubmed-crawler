@@ -1,0 +1,6 @@
+.env*
+.git*
+*.md
+.dockerignore
+Dockerfile
+output/
