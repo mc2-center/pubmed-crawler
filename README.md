@@ -112,10 +112,11 @@ python generate_templates.py
 ## Next Steps
 Fill out the manifest(s) as needed, using the pre-defined Controlled Vocabulary
 listed in **standard_terms** for applicable columns.  Once complete, validate
-upload the manifest(s) with the MC2 Data Curator App (coming soon!).
+upload the manifest(s) with the [MC2 Data Curator App].
 
 [Docker]: https://www.docker.com/get-started
 [Personal Access Token]: https://www.synapse.org/#!PersonalAccessTokens:
 [NCBI account info]: https://support.nlm.nih.gov/knowledgebase/article/KA-05317/en-us
 [conda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html
 [pyenv]: https://github.com/pyenv/pyenv#getting-pyenv
+[MC2 Data Curator App]: https://sagebio.shinyapps.io/csbc_data_curator/
