@@ -166,6 +166,12 @@ def parse_header(header):
         a.find('a').text
         for a in header.find_all('span', attrs={'class': "authors-list-item "})
     ]
+    if not authors:
+        authors = [
+            a.find('a').text
+            for a in header.find_all('span',
+                                     attrs={'class': "authors-list-item"})
+        ]
 
     return (title, journal, year, doi, authors)
 
