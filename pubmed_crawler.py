@@ -43,29 +43,22 @@ def login():
 def get_args():
     """Set up command-line interface and get arguments."""
     parser = argparse.ArgumentParser(
-        description="Scrap PubMed information from a list of grant numbers" +
-        " and put the results into a CSV file.  Table ID can be provided" +
-        " if interested in only scrapping for new publications.")
-
-    # TODO: default to the grants table/view in the "CSBC PS-ON DB" project
-    parser.add_argument(
-        "-g",
-        "--grantview_id",
-        type=str,
-        default="syn21918972",
-        help="Synapse table/view ID containing grant numbers in" +
-        " 'grantNumber' column. (Default: syn21918972)")
-    parser.add_argument("-t",
-                        "--table_id",
+        description=(
+            "Scrap PubMed information from a list of grant numbers and put "
+            "the results into a CSV file.  Table ID can be provided if "
+            "interested in only scrapping for new publications."))
+    parser.add_argument("-g", "--grantview_id",
+                        type=str, default="syn21918972",
+                        help=("Synapse table/view ID containing grant numbers "
+                              "in 'grantNumber' column. (Default: syn21918972)"))
+    parser.add_argument("-t", "--table_id",
                         type=str,
                         help="Current Synapse table holding PubMed info.")
-    parser.add_argument("-o",
-                        "--output_name",
-                        type=str,
-                        default="publications_" +
+    parser.add_argument("-o", "--output_name",
+                        type=str, default="publications_" +
                         datetime.today().strftime('%Y-%m-%d'),
-                        help="Filename for output filename. (Default:" +
-                        " publications_<current-date>)")
+                        help=("Filename for output filename. (Default: "
+                              "publications_<current-date>)"))
     return parser.parse_args()
 
 
@@ -131,11 +124,8 @@ def get_pmids(grants):
     # Brian's request: add check that pubs. are retreived for each grant number
     count = 1
     for grant in grants:
-        handle = Entrez.esearch(db="pubmed",
-                                term=grant,
-                                retmax=1_000_000,
-                                retmode="xml",
-                                sort="relevance")
+        handle = Entrez.esearch(db="pubmed", term=grant, retmax=1_000_000,
+                                retmode="xml", sort="relevance")
         pmids = Entrez.read(handle).get('IdList')
         handle.close()
         all_pmids.update(pmids)
@@ -166,11 +156,13 @@ def parse_header(header):
         a.find('a').text
         for a in header.find_all('span', attrs={'class': "authors-list-item "})
     ]
+
+    # Older publications used `author-list-item` as the class name (no space).
+    # Adding this check, just in case it gets encountered again.
     if not authors:
         authors = [
             a.find('a').text
-            for a in header.find_all('span',
-                                     attrs={'class': "authors-list-item"})
+            for a in header.find_all('span', attrs={'class': "authors-list-item"})
         ]
 
     return (title, journal, year, doi, authors)
@@ -191,10 +183,8 @@ def get_related_info(pmid):
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
     """
-    handle = Entrez.elink(dbfrom="pubmed",
-                          db="gds,sra,gap",
-                          id=pmid,
-                          remode="xml")
+    handle = Entrez.elink(dbfrom="pubmed", db="gds,sra,gap",
+                          id=pmid, remode="xml")
     results = Entrez.read(handle)[0].get('LinkSetDb')
     handle.close()
 
@@ -351,16 +341,14 @@ def scrape_info(pmids, curr_grants, grant_view):
                 dbgaps)
 
             row = pd.DataFrame([[
-                doi, journal,
-                int(pmid), "", "", url, title,
-                int(year), keywords, mesh, authors, consortium, grant_id,
-                ", ".join(grants),
+                doi, journal, int(pmid), "", "", url, title, int(year),
+                keywords, mesh, authors, consortium, grant_id, ", ".join(grants),
                 convert_to_stringlist(gse_ids), gse_url,
                 convert_to_stringlist(srx), srx_url,
                 convert_to_stringlist(list(srp)), srp_url,
-                convert_to_stringlist(dbgaps), dbgap_url, "", "", "", "", ""
-            ]],
-                               columns=columns)
+                convert_to_stringlist(dbgaps), dbgap_url,
+                "", "", "", "", ""
+            ]], columns=columns)
             table.append(row)
         else:
             print(f"{pmid} publication not found - skipping...")
