@@ -81,6 +81,14 @@ environment, e.g. [conda] or [pyenv].
 pip install -r requirements.txt
 ```
 
+For example:
+  
+```
+conda create -n pubmed-crawler python=3.9
+conda activate pubmed-crawler
+pip install -r requirements.txt
+```
+  
 4. Set environment variables from `.env` so that the scripts will have access
 to the credentials.
 
