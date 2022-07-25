@@ -64,7 +64,7 @@ well as manifest templates for datasets, files, and tools.
 
 ### Setup
 
-1. Download `pubmed-crawler` where you want on your local machine, e.g. `$HOME`,
+1. Clone this repo where you want on your local machine, e.g. `$HOME`,
 `Desktop`, etc.
 
 ```bash
@@ -96,9 +96,9 @@ Run the command:
 python pubmed_crawler.py -t syn21868591
 ```
 
-This will pull all grant numbers from **Portal - Grants Merged** (syn21918972),
+This will pull all grant numbers from **Portal - Grants Merged** ([syn21918972]),
 use them as the search terms in PubMed, then compare the PMIDs found in PubMed
-with the existing ones in **Portal - Publications Merged** (syn21868591). The
+with the existing ones in **Portal - Publications Merged** ([syn21868591]). The
 final output will be a new manifest named `publications_manifest_yyyy-mm-dd.xlsx`
 in the `output` folder.
 
@@ -120,3 +120,5 @@ upload the manifest(s) with the [MC2 Data Curator App].
 [conda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html
 [pyenv]: https://github.com/pyenv/pyenv#getting-pyenv
 [MC2 Data Curator App]: https://sagebio.shinyapps.io/csbc_data_curator/
+[syn21918972]: https://www.synapse.org/#!Synapse:syn21918972/tables/
+[syn21868591]: https://www.synapse.org/#!Synapse:syn21868591/tables/
