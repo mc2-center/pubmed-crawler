@@ -27,7 +27,7 @@ most likely result in timeout errors from NCBI.
 
 ```
 # Synapse Credentials
-SYNAPSE_AUTH_TOKEN="PAT"
+SYNAPSE_AUTH_TOKEN=PAT
 
 # Entrez Credentials
 ENTREZ_EMAIL=email
