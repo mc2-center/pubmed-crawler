@@ -113,8 +113,8 @@ where:
 * [`syn21868591`] is the Synapse table containing publications already curated for the CCKP
 
 PubMed Crawler uses this table to compare against publications found in PubMed, 
-based on the grant numbers found in the **Portal - Grants Merged** table. To
-change the table of grants to compare against, use `-g` or `--grantview_id`, e.g.
+based on the grant numbers found in the **Portal - Grants Merged** table ([syn21918972]).
+To change the table of grants to compare against, use `-g` or `--grantview_id`:
 
 ```
 python pubmed_crawler.py -t syn21868591 -g syn123
