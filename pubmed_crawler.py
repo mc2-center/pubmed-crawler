@@ -258,7 +258,7 @@ def scrape_info(pmids, curr_grants, grant_view):
     for pmid in pmids:
         session = requests.Session()
         url = f"https://www.ncbi.nlm.nih.gov/pubmed/?term={pmid}"
-        soup = BeautifulSoup(session.get(url).content, features="xml")
+        soup = BeautifulSoup(session.get(url).content, "lxml")
 
         if not soup.find(attrs={'aria-label': "500 Error"}):
             # HEADER
