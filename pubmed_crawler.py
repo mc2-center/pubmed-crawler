@@ -242,11 +242,11 @@ def scrape_info(pmids, curr_grants, grant_view):
         df: publications data
     """
     columns = [
-        "doi", "journal", "pubMedId", "bioProjectIds", "bioProjectAccns",
-        "pubMedUrl", "publicationTitle", "publicationYear", "keywords", "mesh",
-        "authors", "consortium", "grantId", "grantNumber", "gseAccns",
-        "gseUrls", "srxAccns", "srxUrls", "srpAccns", "srpUrls", "dpgapAccns",
-        "dpgapUrls", "dataset", "tool", "assay", "tumorType", "tissue"
+        "Component", "Publication Grant Number", "Publication Consortium Name",
+        "Publication Theme Name", "Publication Doi", "Publication Journal",
+        "Pubmed Id", "Pubmed Url", "Publication Title", "Publication Year",
+        "Publication Keywords", "Publication Authors", "Publication Assay",
+        "Publication Tumor Type", "Publication Tissue", "Publication Dataset Alias"
     ]
 
     if not os.environ.get('PYTHONHTTPSVERIFY', '') \
@@ -340,14 +340,11 @@ def scrape_info(pmids, curr_grants, grant_view):
                 "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=",
                 dbgaps)
 
+            dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
             row = pd.DataFrame([[
-                doi, journal, int(pmid), "", "", url, title, int(year),
-                keywords, mesh, authors, consortium, grant_id, ", ".join(grants),
-                convert_to_stringlist(gse_ids), gse_url,
-                convert_to_stringlist(srx), srx_url,
-                convert_to_stringlist(list(srp)), srp_url,
-                convert_to_stringlist(dbgaps), dbgap_url,
-                "", "", "", "", ""
+                "PublicationView", ", ".join(grants), consortium, themes, doi,
+                journal, int(pmid), url, title, int(year), keywords, authors,
+                "", "", "", ", ".join(dataset_ids)
             ]], columns=columns)
             table.append(row)
         else:
