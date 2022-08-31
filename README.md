@@ -44,14 +44,14 @@ ENTREZ_API_KEY=apikey
    Synapse credentials when prompted. You should only need to log in once,
    assuming you do not switch registries.
 
-```bash
+```
 docker login docker.synapse.org
 ```
 
 You can also log in non-interactively through `STDIN` - this will prevent
 your password from being saved in the shell's history and log files:
 
-```bash
+```
 cat ~/syn_password.txt | \
   docker login docker.synapse.org --username <syn_username> --password-stdin
 ```
@@ -60,7 +60,7 @@ cat ~/syn_password.txt | \
 
 Run the Docker container, replacing `/path/to/.env` with your path to `.env`.
 
-```bash
+```
 docker run --rm -ti \
   --env-file /path/to/.env \
   --volume $PWD/output:/tmp/output:rw \
@@ -83,7 +83,7 @@ where `<yyyy-mm-dd>` is the current date.
 1. Clone this repo where you want on your local machine, e.g. current directory,
    `Desktop`, etc.
 
-```bash
+```
 git clone https://github.com/mc2-center/pubmed-crawler.git
 ```
 
