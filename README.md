@@ -44,15 +44,16 @@ ENTREZ_API_KEY=apikey
    Synapse credentials when prompted. You should only need to log in once,
    assuming you do not switch registries.
 
-```
+```bash
 docker login docker.synapse.org
 ```
 
 You can also log in non-interactively through `STDIN` - this will prevent
 your password from being saved in the shell's history and log files:
 
-```
-cat ~/syn_password.txt | docker login docker.synapse.org --username <syn_username> --password-stdin
+```bash
+cat ~/syn_password.txt | \
+  docker login docker.synapse.org --username <syn_username> --password-stdin
 ```
 
 ### Usage
