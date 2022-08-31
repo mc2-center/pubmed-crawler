@@ -205,7 +205,7 @@ def parse_geo(info):
     """Parse and return GSE IDs."""
     gse_ids = []
     if info:
-        tags = info.find_all('item', attrs={'name': "GSE"})
+        tags = info.find_all('Item', attrs={'Name': "GSE"})
         gse_ids = ["GSE" + tag.text for tag in tags]
     return gse_ids
 
@@ -214,7 +214,7 @@ def parse_sra(info):
     """Parse and return SRX/SRP IDs."""
     srx_ids = srp_ids = []
     if info:
-        tags = info.find_all('item', attrs={'name': "ExpXml"})
+        tags = info.find_all('Item', attrs={'Name': "ExpXml"})
         srx_ids = [
             re.search(r'Experiment acc="(.*?)"', tag.text).group(1)
             for tag in tags
@@ -230,7 +230,7 @@ def parse_dbgap(info):
     """Parse and return study IDs."""
     gap_ids = []
     if info:
-        tags = info.find_all('item', attrs={'name': "d_study_id"})
+        tags = info.find_all('Item', attrs={'Name': "d_study_id"})
         gap_ids = [tag.text for tag in tags]
     return gap_ids
 
@@ -309,53 +309,20 @@ def scrape_info(pmids, curr_grants, grant_view):
             except AttributeError:
                 keywords = ""
 
-            # MESH TERMS
-            # mesh = soup.find(attrs={"id": "mesh-terms"})
-            # try:
-            #     mesh = sorted({
-            #         term.text.strip().rstrip("*").split(" / ")[0]
-            #         for term in mesh.find_all(
-            #             attrs={"class": "keyword-actions-trigger"})
-            #     })
-            # except AttributeError:
-            #     mesh = []
-            # finally:
-            #     mesh = convert_to_stringlist(mesh)
-
             # RELATED INFORMATION
             # Contains: GEO, SRA, dbGaP
             related_info = get_related_info(pmid)
 
             gse_ids = parse_geo(related_info.get('gds'))
-            # gse_url = make_urls(
-            #     "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=", gse_ids)
-
             srx, srp = parse_sra(related_info.get('sra'))
-            # srx_url = make_urls("https://www.ncbi.nlm.nih.gov/sra/", srx)
-            # srp_url = make_urls(
-            #     "https://trace.ncbi.nlm.nih.gov/Traces/sra/?study=", srp)
-
             dbgaps = parse_dbgap(related_info.get('gap'))
-            # dbgap_url = make_urls(
-            #     "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=",
-            #     dbgaps)
-
             dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
+
             row = pd.DataFrame([[
                 "PublicationView", ", ".join(grants), consortium, themes, doi,
                 journal, int(pmid), url, title, int(year), keywords, authors,
                 "", "", "", ", ".join(dataset_ids)
             ]], columns=columns)
-            # row = pd.DataFrame([[
-            #     doi, journal, int(pmid), "", "", url, title, int(year),
-            #     keywords, mesh, authors, consortium, grant_id, ", ".join(
-            #         grants),
-            #     convert_to_stringlist(gse_ids), gse_url,
-            #     convert_to_stringlist(srx), srx_url,
-            #     convert_to_stringlist(list(srp)), srp_url,
-            #     convert_to_stringlist(dbgaps), dbgap_url,
-            #     "", "", "", "", ""
-            # ]], columns=columns)
             table.append(row)
         else:
             print(f"{pmid} publication not found - skipping...")
