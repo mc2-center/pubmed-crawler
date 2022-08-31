@@ -294,11 +294,11 @@ def scrape_info(pmids, curr_grants, grant_view):
 
             # Nasim's note: match and get the grant center Synapse ID from
             # its view table by grant number of this journal study.
-            grant_id = consortium = ""
+            consortium = themes = ""
             if grants:
                 center = grant_view.loc[grant_view['grantNumber'].isin(grants)]
-                grant_id = ", ".join(list(set(center.grantId)))
-                consortium = ", ".join(list(set(center.consortium)))
+                consortium = ", ".join(set(center.consortium))
+                themes = ", ".join(set(center.theme.sum()))
 
             # KEYWORDS
             abstract = soup.find(attrs={"id": "abstract"})
