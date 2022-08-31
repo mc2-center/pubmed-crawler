@@ -70,6 +70,8 @@ docker run --rm -ti \
 If this is your first time running the command, Docker will first pull the image
 (max. 1-2 minutes) before running the container.
 
+### Output
+
 Depending on how many new publications have been added to PubMed since the last
 scrape (and NCBI’s current requests traffic), this step could take anywhere from
 30 seconds to 15ish minutes. Once complete, a manifest will be found in a folder
@@ -123,12 +125,23 @@ based on the grant numbers found in the **Portal - Grants Merged** table ([syn21
 To change the table of grants to compare against, use `-g` or `--grantview_id`:
 
 ```
-python pubmed_crawler.py -t syn21868591 -g syn123
+python pubmed_crawler.py -t syn21868591 -g syn33657459
 ```
 
+When using a different table of grants, ensure that its schema has at least the following columns:
+
+- `grantNumber`
+- `consortium`
+- `theme`
+
+### Output
+
 Any PMIDs found in PubMed that are not found in the Publications table will
-be added to the output file, `publications_manifest_<yyyy-mm-dd>.xlsx`, in the
-`output` folder, where `<yyyy-mm-dd>` is the current date.
+be scraped. Depending on the number of new publications (and NCBI’s current
+requests traffic), this step could take anywhere from 30 seconds to 15ish
+minutes. Once complete, a manifest will be found in a folder called `output`,
+with a name like `publications_manifest_<yyyy-mm-dd>.xlsx`, where `<yyyy-mm-dd>`
+is the current date.
 
 ## :pencil2: Next Steps
 
