@@ -126,7 +126,7 @@ where:
 
 PubMed Crawler uses this table to compare against publications found in PubMed,
 based on the grant numbers found in the **Portal - Grants Merged** table ([syn21918972]).
-To change the table of grants to compare against, use `-g` or `--grantview_id`:
+To change the table of grants to query PubMed with, use `-g` or `--grantview_id`. For example:
 
 ```
 python pubmed_crawler.py -t syn21868591 -g syn33657459
@@ -137,6 +137,25 @@ When using a different table of grants, ensure that its schema has at least the 
 - `grantNumber`
 - `consortium`
 - `theme`
+
+Below is the full usage of the script:
+
+```
+usage: pubmed_crawler.py [-h] [-g GRANTVIEW_ID] [-t TABLE_ID] [-o OUTPUT_NAME]
+
+Scrap PubMed information from a list of grant numbers and put the results into a CSV file. 
+Table ID can be provided if interested in only scrapping for new publications.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -g GRANTVIEW_ID, --grantview_id GRANTVIEW_ID
+                        Synapse table/view ID containing grant numbers in 'grantNumber'
+                        column. (Default: syn21918972)
+  -t TABLE_ID, --table_id TABLE_ID
+                        Current Synapse table holding PubMed info.
+  -o OUTPUT_NAME, --output_name OUTPUT_NAME
+                        Filename for output filename. (Default: publications_<current-date>)
+```
 
 ### Output
 
