@@ -70,7 +70,11 @@ docker run --rm -ti \
 If this is your first time running the command, Docker will first pull the image
 (max. 1-2 minutes) before running the container.
 
-### Output
+To pull the latest Docker changes, run the following command:
+
+```bash
+docker pull docker.synapse.org/syn21498902/pubmed_crawler
+```
 
 Depending on how many new publications have been added to PubMed since the last
 scrape (and NCBI’s current requests traffic), this step could take anywhere from
