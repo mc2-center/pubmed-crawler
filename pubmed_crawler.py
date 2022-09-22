@@ -43,29 +43,22 @@ def login():
 def get_args():
     """Set up command-line interface and get arguments."""
     parser = argparse.ArgumentParser(
-        description="Scrap PubMed information from a list of grant numbers" +
-        " and put the results into a CSV file.  Table ID can be provided" +
-        " if interested in only scrapping for new publications.")
-
-    # TODO: default to the grants table/view in the "CSBC PS-ON DB" project
-    parser.add_argument(
-        "-g",
-        "--grantview_id",
-        type=str,
-        default="syn21918972",
-        help="Synapse table/view ID containing grant numbers in" +
-        " 'grantNumber' column. (Default: syn21918972)")
-    parser.add_argument("-t",
-                        "--table_id",
+        description=(
+            "Scrap PubMed information from a list of grant numbers and put "
+            "the results into a CSV file.  Table ID can be provided if "
+            "interested in only scrapping for new publications."))
+    parser.add_argument("-g", "--grantview_id",
+                        type=str, default="syn21918972",
+                        help=("Synapse table/view ID containing grant numbers "
+                              "in 'grantNumber' column. (Default: syn21918972)"))
+    parser.add_argument("-t", "--table_id",
                         type=str,
                         help="Current Synapse table holding PubMed info.")
-    parser.add_argument("-o",
-                        "--output_name",
-                        type=str,
-                        default="publications_" +
+    parser.add_argument("-o", "--output_name",
+                        type=str, default="publications_" +
                         datetime.today().strftime('%Y-%m-%d'),
-                        help="Filename for output filename. (Default:" +
-                        " publications_<current-date>)")
+                        help=("Filename for output filename. (Default: "
+                              "publications_<current-date>)"))
     return parser.parse_args()
 
 
@@ -131,11 +124,8 @@ def get_pmids(grants):
     # Brian's request: add check that pubs. are retreived for each grant number
     count = 1
     for grant in grants:
-        handle = Entrez.esearch(db="pubmed",
-                                term=grant,
-                                retmax=1_000_000,
-                                retmode="xml",
-                                sort="relevance")
+        handle = Entrez.esearch(db="pubmed", term=grant, retmax=1_000_000,
+                                retmode="xml", sort="relevance")
         pmids = Entrez.read(handle).get('IdList')
         handle.close()
         all_pmids.update(pmids)
@@ -166,11 +156,13 @@ def parse_header(header):
         a.find('a').text
         for a in header.find_all('span', attrs={'class': "authors-list-item "})
     ]
+
+    # Older publications used `author-list-item` as the class name (no space).
+    # Adding this check, just in case it gets encountered again.
     if not authors:
         authors = [
             a.find('a').text
-            for a in header.find_all('span',
-                                     attrs={'class': "authors-list-item"})
+            for a in header.find_all('span', attrs={'class': "authors-list-item"})
         ]
 
     return (title, journal, year, doi, authors)
@@ -191,10 +183,8 @@ def get_related_info(pmid):
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
     """
-    handle = Entrez.elink(dbfrom="pubmed",
-                          db="gds,sra,gap",
-                          id=pmid,
-                          remode="xml")
+    handle = Entrez.elink(dbfrom="pubmed", db="gds,sra,gap",
+                          id=pmid, remode="xml")
     results = Entrez.read(handle)[0].get('LinkSetDb')
     handle.close()
 
@@ -215,7 +205,7 @@ def parse_geo(info):
     """Parse and return GSE IDs."""
     gse_ids = []
     if info:
-        tags = info.find_all('item', attrs={'name': "GSE"})
+        tags = info.find_all('Item', attrs={'Name': "GSE"})
         gse_ids = ["GSE" + tag.text for tag in tags]
     return gse_ids
 
@@ -224,7 +214,7 @@ def parse_sra(info):
     """Parse and return SRX/SRP IDs."""
     srx_ids = srp_ids = []
     if info:
-        tags = info.find_all('item', attrs={'name': "ExpXml"})
+        tags = info.find_all('Item', attrs={'Name': "ExpXml"})
         srx_ids = [
             re.search(r'Experiment acc="(.*?)"', tag.text).group(1)
             for tag in tags
@@ -240,7 +230,7 @@ def parse_dbgap(info):
     """Parse and return study IDs."""
     gap_ids = []
     if info:
-        tags = info.find_all('item', attrs={'name': "d_study_id"})
+        tags = info.find_all('Item', attrs={'Name': "d_study_id"})
         gap_ids = [tag.text for tag in tags]
     return gap_ids
 
@@ -252,11 +242,11 @@ def scrape_info(pmids, curr_grants, grant_view):
         df: publications data
     """
     columns = [
-        "doi", "journal", "pubMedId", "bioProjectIds", "bioProjectAccns",
-        "pubMedUrl", "publicationTitle", "publicationYear", "keywords", "mesh",
-        "authors", "consortium", "grantId", "grantNumber", "gseAccns",
-        "gseUrls", "srxAccns", "srxUrls", "srpAccns", "srpUrls", "dpgapAccns",
-        "dpgapUrls", "dataset", "tool", "assay", "tumorType", "tissue"
+        "Component", "Publication Grant Number", "Publication Consortium Name",
+        "Publication Theme Name", "Publication Doi", "Publication Journal",
+        "Pubmed Id", "Pubmed Url", "Publication Title", "Publication Year",
+        "Publication Keywords", "Publication Authors", "Publication Assay",
+        "Publication Tumor Type", "Publication Tissue", "Publication Dataset Alias"
     ]
 
     if not os.environ.get('PYTHONHTTPSVERIFY', '') \
@@ -268,7 +258,7 @@ def scrape_info(pmids, curr_grants, grant_view):
     for pmid in pmids:
         session = requests.Session()
         url = f"https://www.ncbi.nlm.nih.gov/pubmed/?term={pmid}"
-        soup = BeautifulSoup(session.get(url).content, features="xml")
+        soup = BeautifulSoup(session.get(url).content, "lxml")
 
         if not soup.find(attrs={'aria-label': "500 Error"}):
             # HEADER
@@ -304,11 +294,11 @@ def scrape_info(pmids, curr_grants, grant_view):
 
             # Nasim's note: match and get the grant center Synapse ID from
             # its view table by grant number of this journal study.
-            grant_id = consortium = ""
+            consortium = themes = ""
             if grants:
                 center = grant_view.loc[grant_view['grantNumber'].isin(grants)]
-                grant_id = ", ".join(list(set(center.grantId)))
-                consortium = ", ".join(list(set(center.consortium)))
+                consortium = ", ".join(set(center.consortium))
+                themes = ", ".join(set(center.theme.sum()))
 
             # KEYWORDS
             abstract = soup.find(attrs={"id": "abstract"})
@@ -319,48 +309,20 @@ def scrape_info(pmids, curr_grants, grant_view):
             except AttributeError:
                 keywords = ""
 
-            # MESH TERMS
-            mesh = soup.find(attrs={"id": "mesh-terms"})
-            try:
-                mesh = sorted({
-                    term.text.strip().rstrip("*").split(" / ")[0]
-                    for term in mesh.find_all(
-                        attrs={"class": "keyword-actions-trigger"})
-                })
-            except AttributeError:
-                mesh = []
-            finally:
-                mesh = convert_to_stringlist(mesh)
-
             # RELATED INFORMATION
             # Contains: GEO, SRA, dbGaP
             related_info = get_related_info(pmid)
 
             gse_ids = parse_geo(related_info.get('gds'))
-            gse_url = make_urls(
-                "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=", gse_ids)
-
             srx, srp = parse_sra(related_info.get('sra'))
-            srx_url = make_urls("https://www.ncbi.nlm.nih.gov/sra/", srx)
-            srp_url = make_urls(
-                "https://trace.ncbi.nlm.nih.gov/Traces/sra/?study=", srp)
-
             dbgaps = parse_dbgap(related_info.get('gap'))
-            dbgap_url = make_urls(
-                "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=",
-                dbgaps)
+            dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
 
             row = pd.DataFrame([[
-                doi, journal,
-                int(pmid), "", "", url, title,
-                int(year), keywords, mesh, authors, consortium, grant_id,
-                ", ".join(grants),
-                convert_to_stringlist(gse_ids), gse_url,
-                convert_to_stringlist(srx), srx_url,
-                convert_to_stringlist(list(srp)), srp_url,
-                convert_to_stringlist(dbgaps), dbgap_url, "", "", "", "", ""
-            ]],
-                               columns=columns)
+                "PublicationView", ", ".join(grants), consortium, themes, doi,
+                journal, int(pmid), url, title, int(year), keywords, authors,
+                "", "", "", ", ".join(dataset_ids)
+            ]], columns=columns)
             table.append(row)
         else:
             print(f"{pmid} publication not found - skipping...")
@@ -409,9 +371,9 @@ def generate_manifest(syn, table, output):
         ws.append(r)
 
     # Get latest CV terms to save as "standard_terms".
-    query = ("SELECT key, value, columnType FROM syn26433610 "
-             "WHERE key <> '' AND columnType <> '' "
-             "ORDER BY key, value")
+    query = ("SELECT attribute, preferredTerm FROM syn26433610 "
+             "WHERE attribute <> ''"
+             "ORDER BY attribute, preferredTerm")
     cv_terms = syn.tableQuery(query).asDataFrame().fillna("").drop_duplicates()
     ws2 = wb.create_sheet("standard_terms")
     for row in dataframe_to_rows(cv_terms, index=False, header=True):

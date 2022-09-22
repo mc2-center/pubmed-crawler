@@ -7,4 +7,4 @@ RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 COPY . .
 
-ENTRYPOINT [ "sh", "./entrypoint.sh" ]
+ENTRYPOINT [ "python", "pubmed_crawler.py", "-t syn21868591" ]
