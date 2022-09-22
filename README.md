@@ -54,11 +54,18 @@ docker run --rm -ti \
 If this is your first time running the command, Docker will first pull the image
 (max. 1-2 minutes) before running the container.
 
+To pull the latest Docker Model, run the following command:
+
+```bash
+docker pull docker.synapse.org/syn21498902/pubmed_crawler
+```
+
 Depending on how many new publications have been added to PubMed since the last
 scrape (and NCBI’s current requests traffic), this step could take anywhere from
 10 seconds to 15ish minutes.  Once complete, a manifest will be found in a folder
 called `output`, with a name like `publications_manifest_yyyy-mm-dd.xlsx`, as
 well as manifest templates for datasets, files, and tools.
+
 
 ## Generate with Python
 
