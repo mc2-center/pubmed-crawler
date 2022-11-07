@@ -242,11 +242,12 @@ def scrape_info(pmids, curr_grants, grant_view):
         df: publications data
     """
     columns = [
-        "Component", "Publication Grant Number", "Publication Consortium Name",
-        "Publication Theme Name", "Publication Doi", "Publication Journal",
-        "Pubmed Id", "Pubmed Url", "Publication Title", "Publication Year",
-        "Publication Keywords", "Publication Authors", "Publication Assay",
-        "Publication Tumor Type", "Publication Tissue", "Publication Dataset Alias"
+        "component", "publicationGrantNumber", "publicationConsortiumName",
+        "publicationThemeName", "publicationDoi", "publicationJournal",
+        "pubmedId", "pubmedUrl", "publicationTitle", "publicationYear",
+        "publicationKeywords", "publicationAuthors", "publicationAbstract", 
+        "publicationAssay", "publicationTumorType", "publicationTissue", 
+        "publicationDatasetAlias"
     ]
 
     if not os.environ.get('PYTHONHTTPSVERIFY', '') \
@@ -302,6 +303,8 @@ def scrape_info(pmids, curr_grants, grant_view):
 
             # KEYWORDS
             abstract = soup.find(attrs={"id": "abstract"})
+            abstract_text = abstract.find(
+                "div", attrs={'class': "abstract-content"}).text.strip()
             try:
                 keywords = abstract.find(
                     text=re.compile("Keywords")).find_parent("p").text.replace(
@@ -321,7 +324,7 @@ def scrape_info(pmids, curr_grants, grant_view):
             row = pd.DataFrame([[
                 "PublicationView", ", ".join(grants), consortium, themes, doi,
                 journal, int(pmid), url, title, int(year), keywords, authors,
-                "", "", "", ", ".join(dataset_ids)
+                abstract_text, "", "", "", ", ".join(dataset_ids)
             ]], columns=columns)
             table.append(row)
         else:
