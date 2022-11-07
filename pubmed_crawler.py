@@ -302,6 +302,8 @@ def scrape_info(pmids, curr_grants, grant_view):
 
             # KEYWORDS
             abstract = soup.find(attrs={"id": "abstract"})
+            abstract_text = abstract.find(
+                "div", attrs={'class': "abstract-content"}).text.strip()
             try:
                 keywords = abstract.find(
                     text=re.compile("Keywords")).find_parent("p").text.replace(
@@ -321,7 +323,7 @@ def scrape_info(pmids, curr_grants, grant_view):
             row = pd.DataFrame([[
                 "PublicationView", ", ".join(grants), consortium, themes, doi,
                 journal, int(pmid), url, title, int(year), keywords, authors,
-                "", "", "", ", ".join(dataset_ids)
+                abstract_text, "", "", "", ", ".join(dataset_ids)
             ]], columns=columns)
             table.append(row)
         else:
