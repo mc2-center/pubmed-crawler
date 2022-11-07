@@ -1,5 +1,5 @@
 <h1 align="center">
-  MC2 Center Pubmed Crawler
+  MC<sup>2</sup> Center Pubmed Crawler
 </h1>
 
 <h3 align="center">
@@ -31,30 +31,30 @@ most likely result in timeout errors from NCBI.
 1. Create a file called `.env` and update its contents with your Synapse
    [Personal Access Token] (PAT) and [NCBI account info].
 
-```
-# Synapse Credentials
-SYNAPSE_AUTH_TOKEN=PAT
+    ```
+    # Synapse Credentials
+    SYNAPSE_AUTH_TOKEN=PAT
 
-# Entrez Credentials
-ENTREZ_EMAIL=email
-ENTREZ_API_KEY=apikey
-```
+    # Entrez Credentials
+    ENTREZ_EMAIL=email
+    ENTREZ_API_KEY=apikey
+    ```
 
 2. Open a terminal and log into the Synapse Docker registry. Provide your
    Synapse credentials when prompted. You should only need to log in once,
    assuming you do not switch registries.
 
-```
-docker login docker.synapse.org
-```
+    ```
+    docker login docker.synapse.org
+    ```
 
-You can also log in non-interactively through `STDIN` - this will prevent
-your password from being saved in the shell's history and log files:
+    You can also log in non-interactively through `STDIN` - this will prevent
+    your password from being saved in the shell's history and log files:
 
-```
-cat ~/syn_password.txt | \
-  docker login docker.synapse.org --username <syn_username> --password-stdin
-```
+    ```
+    cat ~/syn_password.txt | \
+      docker login docker.synapse.org --username <syn_username> --password-stdin
+    ```
 
 ### Usage
 
@@ -89,9 +89,9 @@ where `<yyyy-mm-dd>` is the current date.
 1. Clone this repo where you want on your local machine, e.g. current directory,
    `Desktop`, etc.
 
-```
-git clone https://github.com/mc2-center/pubmed-crawler.git
-```
+    ```
+    git clone https://github.com/mc2-center/pubmed-crawler.git
+    ```
 
 2. In the `pubmed-crawler` directory, copy `.envTemplate` as `.env`, then update
    its contents with your Synapse [Personal Access Token] (PAT) and [NCBI account info].
@@ -99,18 +99,18 @@ git clone https://github.com/mc2-center/pubmed-crawler.git
 3. Install the dependencies for the Python scripts, ideally in a virtual
    environment, e.g. [conda] or [pyenv]. For example:
 
-```
-conda create -n pubmed-crawler python=3.9
-conda activate pubmed-crawler
-pip install -r requirements.txt
-```
+    ```
+    conda create -n pubmed-crawler python=3.9
+    conda activate pubmed-crawler
+    pip install -r requirements.txt
+    ```
 
 4. Set environment variables from `.env` so that the scripts will have access
    to the credentials.
 
-```
-export $(grep -v '^#' .env | xargs)
-```
+    ```
+    export $(grep -v '^#' .env | xargs)
+    ```
 
 ### Usage
 
@@ -143,7 +143,7 @@ Below is the full usage of the script:
 ```
 usage: pubmed_crawler.py [-h] [-g GRANTVIEW_ID] [-t TABLE_ID] [-o OUTPUT_NAME]
 
-Scrap PubMed information from a list of grant numbers and put the results into a CSV file. 
+Scrape PubMed information from a list of grant numbers and put the results into a CSV file. 
 Table ID can be provided if interested in only scrapping for new publications.
 
 optional arguments:
