@@ -242,11 +242,12 @@ def scrape_info(pmids, curr_grants, grant_view):
         df: publications data
     """
     columns = [
-        "Component", "Publication Grant Number", "Publication Consortium Name",
-        "Publication Theme Name", "Publication Doi", "Publication Journal",
-        "Pubmed Id", "Pubmed Url", "Publication Title", "Publication Year",
-        "Publication Keywords", "Publication Authors", "Publication Assay",
-        "Publication Tumor Type", "Publication Tissue", "Publication Dataset Alias"
+        "component", "publicationGrantNumber", "publicationConsortiumName",
+        "publicationThemeName", "publicationDoi", "publicationJournal",
+        "pubmedId", "pubmedUrl", "publicationTitle", "publicationYear",
+        "publicationKeywords", "publicationAuthors", "publicationAbstract", 
+        "publicationAssay", "publicationTumorType", "publicationTissue", 
+        "publicationDatasetAlias"
     ]
 
     if not os.environ.get('PYTHONHTTPSVERIFY', '') \
