@@ -1,8 +1,8 @@
 """PubMed Crawler of CSBC/PS-ON Publications.
 
 author: nasim.sanati
-author: milen.nikolov
-author: verena.chung
+maintainer: milen.nikolov
+maintainer: verena.chung
 """
 
 import os
