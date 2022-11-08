@@ -1,8 +1,8 @@
 """PubMed Crawler of CSBC/PS-ON Publications.
 
 author: nasim.sanati
-author: milen.nikolov
-author: verena.chung
+maintainer: milen.nikolov
+maintainer: verena.chung
 """
 
 import os
@@ -52,7 +52,7 @@ def get_args():
                         help=("Synapse table/view ID containing grant numbers "
                               "in 'grantNumber' column. (Default: syn21918972)"))
     parser.add_argument("-t", "--table_id",
-                        type=str,
+                        type=str, required=True,
                         help="Current Synapse table holding PubMed info.")
     parser.add_argument("-o", "--output_name",
                         type=str, default="publications_" +
@@ -245,8 +245,8 @@ def scrape_info(pmids, curr_grants, grant_view):
         "component", "publicationGrantNumber", "publicationConsortiumName",
         "publicationThemeName", "publicationDoi", "publicationJournal",
         "pubmedId", "pubmedUrl", "publicationTitle", "publicationYear",
-        "publicationKeywords", "publicationAuthors", "publicationAbstract", 
-        "publicationAssay", "publicationTumorType", "publicationTissue", 
+        "publicationKeywords", "publicationAuthors", "publicationAbstract",
+        "publicationAssay", "publicationTumorType", "publicationTissue",
         "publicationDatasetAlias"
     ]
 
@@ -303,8 +303,11 @@ def scrape_info(pmids, curr_grants, grant_view):
 
             # KEYWORDS
             abstract = soup.find(attrs={"id": "abstract"})
-            abstract_text = abstract.find(
-                "div", attrs={'class': "abstract-content"}).text.strip()
+            try:
+                abstract_text = abstract.find(
+                    "div", attrs={'class': "abstract-content"}).text.strip()
+            except AttributeError:
+                abstract_text = ""
             try:
                 keywords = abstract.find(
                     text=re.compile("Keywords")).find_parent("p").text.replace(
@@ -406,7 +409,10 @@ def main():
     Entrez.api_key = os.getenv('ENTREZ_API_KEY')
 
     table = find_publications(syn, args.grantview_id, args.table_id)
-    generate_manifest(syn, table, args.output_name)
+    if table:
+        generate_manifest(syn, table, args.output_name)
+    else:
+        print("Manifest not generated.")
 
 
 if __name__ == "__main__":
