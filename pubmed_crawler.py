@@ -413,8 +413,8 @@ def main():
         print("Manifest not generated.")
     else:
         print("Generating manifest...")
-        #generate_manifest(syn, table, args.output_name)
-        
+        generate_manifest(syn, table, args.output_name)
+
     print("DONE ✓")
 
 
