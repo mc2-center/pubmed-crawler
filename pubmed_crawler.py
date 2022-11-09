@@ -306,6 +306,9 @@ def scrape_info(pmids, curr_grants, grant_view):
             try:
                 abstract_text = abstract.find(
                     "div", attrs={'class': "abstract-content"}).text.strip()
+
+                # Remove extraneous whitespace if present in abstract.
+                abstract_text = re.sub(r"\s{2,}", " ", abstract_text)
             except AttributeError:
                 abstract_text = ""
             try:
