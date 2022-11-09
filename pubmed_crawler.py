@@ -346,7 +346,6 @@ def find_publications(syn, grantview_id, table_id):
     grant_view = get_view(syn, grantview_id)
     grants = get_grants(grant_view)
     pmids = get_pmids(grants)
-    table = []
 
     # If user provided a table ID, only scrape info from publications
     # not already listed in the provided table.
@@ -364,7 +363,8 @@ def find_publications(syn, grantview_id, table_id):
     if pmids:
         print("Pulling information from publications... ")
         table = scrape_info(pmids, grants, grant_view)
-    print("DONE ✓")
+    else:
+        table = pd.DataFrame()
     return table
 
 
@@ -409,10 +409,13 @@ def main():
     Entrez.api_key = os.getenv('ENTREZ_API_KEY')
 
     table = find_publications(syn, args.grantview_id, args.table_id)
-    if table:
-        generate_manifest(syn, table, args.output_name)
-    else:
+    if table.empty:
         print("Manifest not generated.")
+    else:
+        print("Generating manifest...")
+        #generate_manifest(syn, table, args.output_name)
+        
+    print("DONE ✓")
 
 
 if __name__ == "__main__":
