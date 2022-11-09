@@ -1,7 +1,6 @@
 # Synapse Credentials
-SYNAPSE_AUTH_TOKEN="PAT"
-
+SYNAPSE_AUTH_TOKEN=<PAT>
 
 # Entrez Credentials
-ENTREZ_EMAIL=email
-ENTREZ_API_KEY=apikey
+ENTREZ_EMAIL=<email>
+ENTREZ_API_KEY=<apikey>
