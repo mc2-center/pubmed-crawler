@@ -1,4 +1,4 @@
-"""PubMed Crawler of CSBC/PS-ON Publications.
+"""PubMed 'Crawler' of CSBC/PS-ON Publications.
 
 author: nasim.sanati
 maintainer: milen.nikolov
@@ -45,7 +45,7 @@ def get_args():
     """Set up command-line interface and get arguments."""
     parser = argparse.ArgumentParser(
         description=(
-            "Scrap PubMed information from a list of grant numbers and put "
+            "Get PubMed information from a list of grant numbers and put "
             "the results into a CSV file.  Table ID can be provided if "
             "interested in only scrapping for new publications."))
     parser.add_argument("-g", "--grant_id",
@@ -171,7 +171,7 @@ def parse_dbgap(info):
     return gap_ids
 
 
-def scrape_info(pmids, curr_grants):
+def pull_info(pmids, curr_grants):
     """Create dataframe of publications and their pulled data.
 
     Returns:
@@ -300,7 +300,7 @@ def find_publications(syn, grant_id, table_id):
 
     if pmids:
         print("Pulling information from publications... ")
-        table = scrape_info(pmids, grants)
+        table = pull_info(pmids, grants)
     else:
         table = pd.DataFrame()
     print()
