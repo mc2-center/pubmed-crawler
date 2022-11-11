@@ -249,74 +249,74 @@ def scrape_info(pmids, curr_grants, grant_view):
         "publicationAssay", "publicationTumorType", "publicationTissue",
         "publicationDatasetAlias"
     ]
+    pmc_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/searchPOST"
+    query = " OR ".join(pmids)
+    data = {
+        'query': query,
+        'resultType': "core",
+        'format': "json",
+        'pageSize': 1_000
+    }
 
-    if not os.environ.get('PYTHONHTTPSVERIFY', '') \
-            and getattr(ssl, '_create_unverified_context', None):
-        ssl._create_default_https_context = ssl._create_unverified_context
+    session = requests.Session()
+    response = json.loads(session.post(url=pmc_url, data=data).content)
+    results = response.get('resultList').get('result')
+    session.close()
 
     table = []
+    for result in results:
+        pmid = result.get('id')
+        if pmid in pmids:
 
-    for pmid in pmids:
-        session = requests.Session()
-        url = f"https://www.ncbi.nlm.nih.gov/pubmed/?term={pmid}"
-        soup = BeautifulSoup(session.get(url).content, "lxml")
+            # GENERAL INFO
+            url = f"https://www.ncbi.nlm.nih.gov/pubmed/?term={pmid}"
+            doi = result.get('doi')
+            journal_info = result.get('journalInfo').get('journal')
+            journal = journal_info.get(
+                'isoabbreviation', journal_info.get('medlineAbbreviation'))
+            year = result.get('pubYear')
+            title = result.get('title').rstrip(".")
+            authors = [
+                f"{author.get('firstName')} {author.get('lastName')}"
+                for author
+                in result.get('authorList').get('author')
+            ]
+            abstract = result.get('abstractText', "No abstract available.").replace(
+                "<h4>", " ").replace("</h4>", " ").lstrip()
+            keywords_check = result.get('keywordList')
+            if keywords_check:
+                keywords = keywords_check.get('keyword')
+            else:
+                keywords = ""
 
-        if not soup.find(attrs={'aria-label': "500 Error"}):
-            # HEADER
-            # Contains: title, journal, pub. date, authors, pmid, doi
-            header = soup.find(attrs={'id': "full-view-heading"})
-
-            # PubMed utilizes JavaScript now, so content does not always
-            # fully load on the first try.
-            if not header:
-                soup = BeautifulSoup(session.get(url).content, features="xml")
-                header = soup.find(attrs={'id': "full-view-heading"})
-
-            title, journal, year, doi, authors = parse_header(header)
-            authors = ", ".join(authors)
+            # ACCESSIBILITY
+            is_open = result.get('isOpenAccess')
+            if is_open == "Y":
+                accessbility = "Open Access"
+                assay = tissue = tumor_type = ""
+            else:
+                accessbility = "Restricted"
+                assay = tissue = tumor_type = "Pending Annotation"
 
             # GRANTS
-            try:
+            grants_check = result.get('grantsList')
+            if grants_check:
                 grants = [
-                    g.text.strip()
-                    for g in soup.find('div', attrs={
-                        'id': "grants"
-                    }).find_all('a')
+                    parse_grant(grant.get('grantId'))
+                    for grant in grants_check.get('grant')
+                    if grant.get('grantId')
+                    and re.search(r"CA\d", grant.get('grantId'), re.I)
                 ]
-
-                # Filter out grant annotations not in consortia.
-                grants = {
-                    parse_grant(grant)
-                    for grant in grants if re.search(r"CA\d", grant, re.I)
-                }
-                grants = list(filter(lambda x: x in curr_grants, grants))
-            except AttributeError:
+                grants = set(filter(lambda x: x in grants_list, grants))
+            else:
                 grants = []
 
-            # Nasim's note: match and get the grant center Synapse ID from
-            # its view table by grant number of this journal study.
-            consortium = themes = ""
             if grants:
-                center = grant_view.loc[grant_view['grantNumber'].isin(grants)]
+                center = curr_grants.loc[curr_grants.grantNumber.isin(grants)]
                 consortium = ", ".join(set(center.consortium))
                 themes = ", ".join(set(center.theme.sum()))
-
-            # KEYWORDS
-            abstract = soup.find(attrs={"id": "abstract"})
-            try:
-                abstract_text = abstract.find(
-                    "div", attrs={'class': "abstract-content"}).text.strip()
-
-                # Remove extraneous whitespace if present in abstract.
-                abstract_text = re.sub(r"\s{2,}", " ", abstract_text)
-            except AttributeError:
-                abstract_text = ""
-            try:
-                keywords = abstract.find(
-                    text=re.compile("Keywords")).find_parent("p").text.replace(
-                        "Keywords:", "").strip()
-            except AttributeError:
-                keywords = ""
+            else:
+                consortium = themes = ""
 
             # RELATED INFORMATION
             # Contains: GEO, SRA, dbGaP
@@ -329,8 +329,9 @@ def scrape_info(pmids, curr_grants, grant_view):
 
             row = pd.DataFrame([[
                 "PublicationView", ", ".join(grants), consortium, themes, doi,
-                journal, int(pmid), url, title, int(year), keywords, authors,
-                abstract_text, "", "", "", ", ".join(dataset_ids)
+                journal, int(pmid), url, title, int(year), ", ".join(keywords),
+                ", ".join(authors), abstract, assay, tumor_type, tissue,
+                ", ".join(dataset_ids), accessbility
             ]], columns=columns)
             table.append(row)
         else:
