@@ -63,27 +63,6 @@ def get_args():
     return parser.parse_args()
 
 
-def convert_to_stringlist(lst):
-    """Create StringList of values for Synapse column type.
-
-    Returns:
-        str: list of strings
-    """
-    if lst:
-        return "['" + "', '".join(lst) + "']"
-    return "[]"
-
-
-def make_urls(url, accessions):
-    """Create NCBI link for each accession in the iterable.
-
-    Returns:
-        str: list of URLs
-    """
-    url_list = [url + accession for accession in list(accessions)]
-    return ", ".join(url_list)
-
-
 def get_grants(syn, table_id):
     """Get list of grant numbers from dataframe.
 
@@ -369,7 +348,7 @@ def main():
     Entrez.api_key = os.getenv('ENTREZ_API_KEY')
 
     if not os.environ.get('PYTHONHTTPSVERIFY', '') \
-        and getattr(ssl, '_create_unverified_context', None):
+            and getattr(ssl, '_create_unverified_context', None):
         ssl._create_default_https_context = ssl._create_unverified_context
 
     table = find_publications(syn, args.grant_id, args.table_id)
