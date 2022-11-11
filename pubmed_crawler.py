@@ -120,7 +120,7 @@ def get_related_info(pmid):
         dict: XML results for GEO, SRA, and dbGaP
     """
     handle = Entrez.elink(dbfrom="pubmed", db="gds,sra,gap",
-                          id=pmid, remode="xml")
+                          id=pmid, retmode="xml")
     results = Entrez.read(handle)[0].get('LinkSetDb')
     handle.close()
 
