@@ -128,12 +128,10 @@ def get_related_info(pmid):
     for result in results:
         db = re.search(r"pubmed_(.*)", result.get('LinkName')).group(1)
         ids = [link.get('Id') for link in result.get('Link')]
-
         handle = Entrez.esummary(db=db, id=",".join(ids))
         soup = BeautifulSoup(handle, features="xml")
         handle.close()
         related_info[db] = soup
-
     return related_info
 
 
@@ -154,10 +152,12 @@ def parse_sra(info):
         srx_ids = [
             re.search(r'Experiment acc="(.*?)"', tag.text).group(1)
             for tag in tags
+            if re.search(r'Experiment acc="(.*?)"', tag.text)
         ]
         srp_ids = {
             re.search(r'Study acc="(.*?)"', tag.text).group(1)
             for tag in tags
+            if re.search(r'Study acc="(.*?)"', tag.text)
         }
     return srx_ids, srp_ids
 
@@ -258,7 +258,6 @@ def pull_info(pmids, curr_grants):
             # RELATED INFORMATION
             # Contains: GEO, SRA, dbGaP
             related_info = get_related_info(pmid)
-
             gse_ids = parse_geo(related_info.get('gds'))
             srx, srp = parse_sra(related_info.get('sra'))
             dbgaps = parse_dbgap(related_info.get('gap'))
