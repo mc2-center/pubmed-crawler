@@ -33,11 +33,11 @@ most likely result in timeout errors from NCBI.
 
     ```
     # Synapse Credentials
-    SYNAPSE_AUTH_TOKEN=PAT
+    SYNAPSE_AUTH_TOKEN=<PAT>
 
     # Entrez Credentials
-    ENTREZ_EMAIL=email
-    ENTREZ_API_KEY=apikey
+    ENTREZ_EMAIL=<email>
+    ENTREZ_API_KEY=<apikey>
     ```
 
 2. Open a terminal and log into the Synapse Docker registry. Provide your
@@ -141,20 +141,19 @@ When using a different table of grants, ensure that its schema has at least the 
 Below is the full usage of the script:
 
 ```
-usage: pubmed_crawler.py [-h] [-g GRANTVIEW_ID] [-t TABLE_ID] [-o OUTPUT_NAME]
+usage: pubmed_crawler.py [-h] [-g GRANT_ID] -t TABLE_ID [-o OUTPUT_NAME]
 
-Scrape PubMed information from a list of grant numbers and put the results into a CSV file. 
+Get PubMed information from a list of grant numbers and put the results into a CSV file.
 Table ID can be provided if interested in only scrapping for new publications.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -g GRANTVIEW_ID, --grantview_id GRANTVIEW_ID
-                        Synapse table/view ID containing grant numbers in 'grantNumber'
-                        column. (Default: syn21918972)
+  -g GRANT_ID, --grant_id GRANT_ID
+                        Synapse table/view ID containing grant numbers in 'grantNumber' column. 
+                        (Default: syn21918972)
   -t TABLE_ID, --table_id TABLE_ID
                         Current Synapse table holding PubMed info.
   -o OUTPUT_NAME, --output_name OUTPUT_NAME
-                        Filename for output filename. (Default: publications_<current-date>)
 ```
 
 ### Output
