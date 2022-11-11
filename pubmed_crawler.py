@@ -11,6 +11,7 @@ import argparse
 import getpass
 import ssl
 from datetime import datetime
+import json
 import requests
 
 from Bio import Entrez
@@ -47,7 +48,7 @@ def get_args():
             "Scrap PubMed information from a list of grant numbers and put "
             "the results into a CSV file.  Table ID can be provided if "
             "interested in only scrapping for new publications."))
-    parser.add_argument("-g", "--grantview_id",
+    parser.add_argument("-g", "--grant_id",
                         type=str, default="syn21918972",
                         help=("Synapse table/view ID containing grant numbers "
                               "in 'grantNumber' column. (Default: syn21918972)"))
@@ -70,8 +71,7 @@ def convert_to_stringlist(lst):
     """
     if lst:
         return "['" + "', '".join(lst) + "']"
-    else:
-        return "[]"
+    return "[]"
 
 
 def make_urls(url, accessions):
@@ -84,31 +84,22 @@ def make_urls(url, accessions):
     return ", ".join(url_list)
 
 
-def get_view(syn, table_id):
-    """Get Synapse table/data view containing grant numbers.
-
-    Assumptions:
-        Syanpse table/view has column called 'grantNumber'
-
-    Returns:
-        dataframe: consortiums and their project descriptions.
-    """
-    results = syn.tableQuery(f"select * from {table_id}").asDataFrame()
-    return results[~results['grantNumber'].isnull()]
-
-
-def get_grants(df):
+def get_grants(syn, table_id):
     """Get list of grant numbers from dataframe.
 
     Assumptions:
-        Dataframe has column called 'grantNumber'
+        Synapse table has `grantNumber`, `consortium`, `theme` columns.
 
     Returns:
         set: valid grant numbers, e.g. non-empty strings
     """
     print("Querying for grant numbers... ", end="")
-    grants = set(df.grantNumber.dropna())
-    print(f"{len(grants)} found\n")
+    grants = (
+        syn.tableQuery(
+            f"SELECT grantNumber, consortium, theme FROM {table_id}")
+        .asDataFrame()
+    )
+    print(f"✓\n  Number of grants: {len(grants)}\n")
     return grants
 
 
@@ -118,67 +109,33 @@ def get_pmids(grants):
     Returns:
         set: PubMed IDs
     """
-    print("Getting PMIDs from NCBI...")
-    all_pmids = set()
+    print("Getting PMIDs from NCBI... ", end="")
+    query = " OR ".join(grants.grantNumber.tolist())
+    handle = Entrez.esearch(db="pubmed", term=query, retmax=100_000,
+                            retmode="xml", sort="relevance")
+    pmids = set(Entrez.read(handle).get('IdList'))
+    handle.close()
 
-    # Brian's request: add check that pubs. are retreived for each grant number
-    count = 1
-    for grant in grants:
-        handle = Entrez.esearch(db="pubmed", term=grant, retmax=1_000_000,
-                                retmode="xml", sort="relevance")
-        pmids = Entrez.read(handle).get('IdList')
-        handle.close()
-        all_pmids.update(pmids)
-        count += 1
-    print(f"  Total unique publications: {len(all_pmids)}\n")
-    return all_pmids
+    # Entrez docs suggests to use HTTP POST when text query is >700
+    # characters. If warning is received, replace above code with following:
+    # session = requests.Session()
+    # base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    # results = json.loads(session.post(
+    #     f"{base_url}?db=pubmed&term={query}&retmax=100000&retmode=json"))
+    # pmids = set(results.get('esearchresult').get('idlist'))
 
-
-def parse_header(header):
-    """Parse header div for pub. title, authors journal, year, and doi."""
-
-    # TITLE
-    title = header.find('h1').text.strip()
-
-    # JOURNAL
-    journal = header.find('button').text.strip()
-
-    # PUBLICATION YEAR
-    pub_date = header.find('span', attrs={'class': "cit"}).text
-    year = re.search(r"(\d{4}).*?[\.;]", pub_date).group(1)
-
-    # DOI
-    doi_cit = header.find(attrs={'class': "citation-doi"})
-    doi = doi_cit.text.strip().lstrip("doi: ").rstrip(".") if doi_cit else ""
-
-    # AUTHORS
-    authors = [
-        a.find('a').text
-        for a in header.find_all('span', attrs={'class': "authors-list-item "})
-    ]
-
-    # Older publications used `author-list-item` as the class name (no space).
-    # Adding this check, just in case it gets encountered again.
-    if not authors:
-        authors = [
-            a.find('a').text
-            for a in header.find_all('span', attrs={'class': "authors-list-item"})
-        ]
-
-    return (title, journal, year, doi, authors)
+    print(f"✓\n  Total unique publications: {len(pmids)}\n")
+    return pmids
 
 
 def parse_grant(grant):
     """Parse for grant number from grant annotation."""
-    grant_info = re.search(r"(CA\d+)[ /-]", grant, re.I)
+    grant_info = re.search(r"(CA\d+)[ /-]?", grant, re.I)
     return grant_info.group(1).upper()
 
 
 def get_related_info(pmid):
     """Get related information associated with publication.
-
-    Entrez will be used for optimal retrieval (since NCBI will kick
-    us out if we web-scrap too often).
 
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
@@ -235,7 +192,7 @@ def parse_dbgap(info):
     return gap_ids
 
 
-def scrape_info(pmids, curr_grants, grant_view):
+def scrape_info(pmids, curr_grants):
     """Create dataframe of publications and their pulled data.
 
     Returns:
@@ -247,7 +204,7 @@ def scrape_info(pmids, curr_grants, grant_view):
         "pubmedId", "pubmedUrl", "publicationTitle", "publicationYear",
         "publicationKeywords", "publicationAuthors", "publicationAbstract",
         "publicationAssay", "publicationTumorType", "publicationTissue",
-        "publicationDatasetAlias"
+        "publicationDatasetAlias", "publicationAccessibility"
     ]
     pmc_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/searchPOST"
     query = " OR ".join(pmids)
@@ -263,6 +220,7 @@ def scrape_info(pmids, curr_grants, grant_view):
     results = response.get('resultList').get('result')
     session.close()
 
+    grants_list = curr_grants.grantNumber.tolist()
     table = []
     for result in results:
         pmid = result.get('id')
@@ -334,41 +292,39 @@ def scrape_info(pmids, curr_grants, grant_view):
                 ", ".join(dataset_ids), accessbility
             ]], columns=columns)
             table.append(row)
-        else:
-            print(f"{pmid} publication not found - skipping...")
-        session.close()
-
     return pd.concat(table)
 
 
-def find_publications(syn, grantview_id, table_id):
+def find_publications(syn, grant_id, table_id):
     """Get list of publications based on grants of consortia.
 
     Returns:
         df: publications data
     """
-    grant_view = get_view(syn, grantview_id)
-    grants = get_grants(grant_view)
+    grants = get_grants(syn, grant_id)
     pmids = get_pmids(grants)
 
     # If user provided a table ID, only scrape info from publications
     # not already listed in the provided table.
     if table_id:
-        print(f"Comparing with table {table_id}...")
-        current_publications = syn.tableQuery(
-            f"SELECT * FROM {table_id}").asDataFrame()
-        current_pmids = {
-            str(pmid)
-            for pmid in list(current_publications.pubMedId)
-        }
-        pmids -= current_pmids
-        print(f"  New publications found: {len(pmids)}\n")
+        table_name = syn.get(table_id).name
+        print(f"Comparing with table: {table_name}...", end="")
+        current_pmids = (
+            syn.tableQuery(f"SELECT pubMedId FROM {table_id}")
+            .asDataFrame()
+            .pubMedId
+            .astype(str)
+            .tolist()
+        )
+        pmids -= set(current_pmids)
+        print(f" ✓\n  New publications found: {len(pmids)}\n")
 
     if pmids:
         print("Pulling information from publications... ")
-        table = scrape_info(pmids, grants, grant_view)
+        table = scrape_info(pmids, grants)
     else:
         table = pd.DataFrame()
+    print()
     return table
 
 
@@ -412,14 +368,24 @@ def main():
     Entrez.email = os.getenv('ENTREZ_EMAIL')
     Entrez.api_key = os.getenv('ENTREZ_API_KEY')
 
-    table = find_publications(syn, args.grantview_id, args.table_id)
+    if not os.environ.get('PYTHONHTTPSVERIFY', '') \
+        and getattr(ssl, '_create_unverified_context', None):
+        ssl._create_default_https_context = ssl._create_unverified_context
+
+    table = find_publications(syn, args.grant_id, args.table_id)
     if table.empty:
         print("Manifest not generated.")
     else:
-        print("Generating manifest...")
-        generate_manifest(syn, table, args.output_name)
+        print("Generating manifest... ", end="")
 
-    print("DONE ✓")
+        # Generate manifest with open-access publications listed first.
+        generate_manifest(
+            syn,
+            table.sort_values(by='publicationAccessibility'),
+            args.output_name)
+        print("✓")
+
+    print("-- DONE --")
 
 
 if __name__ == "__main__":
