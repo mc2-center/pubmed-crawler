@@ -219,7 +219,7 @@ def pull_info(pmids, curr_grants):
                 in result.get('authorList').get('author')
             ]
             abstract = result.get('abstractText', "No abstract available.").replace(
-                "<h4>", " ").replace("</h4>", " ").lstrip()
+                "<h4>", " ").replace("</h4>", ": ").lstrip()
             keywords_check = result.get('keywordList')
             if keywords_check:
                 keywords = keywords_check.get('keyword')
@@ -350,7 +350,7 @@ def main():
             and getattr(ssl, '_create_unverified_context', None):
         ssl._create_default_https_context = ssl._create_unverified_context
 
-    table = find_publications(syn, args.grant_id, args.table_id)
+    table = find_publications(syn, args.grant_id, args.table_id.strip())
     if table.empty:
         print("Manifest not generated.")
     else:
