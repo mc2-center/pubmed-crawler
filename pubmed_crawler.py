@@ -202,7 +202,7 @@ def pull_info(pmids, curr_grants):
     grants_list = curr_grants.grantNumber.tolist()
     table = []
     for result in results:
-        pmid = result.get('id')
+        pmid = result.get('pmid')
         if pmid in pmids:
 
             # GENERAL INFO
