@@ -202,11 +202,11 @@ def pull_info(pmids, curr_grants):
     grants_list = curr_grants.grantNumber.tolist()
     table = []
     for result in results:
-        pmid = result.get('id')
+        pmid = result.get('pmid')
         if pmid in pmids:
 
             # GENERAL INFO
-            url = f"https://www.ncbi.nlm.nih.gov/pubmed/?term={pmid}"
+            url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
             doi = result.get('doi')
             journal_info = result.get('journalInfo').get('journal')
             journal = journal_info.get(
@@ -227,8 +227,12 @@ def pull_info(pmids, curr_grants):
                 keywords = ""
 
             # ACCESSIBILITY
-            is_open = result.get('isOpenAccess')
-            if is_open == "Y":
+            is_open = [
+                code.get('availabilityCode') in ['F', 'OA', 'U']
+                for code
+                in result.get('fullTextUrlList').get('fullTextUrl')
+            ]
+            if any(is_open):
                 accessbility = "Open Access"
                 assay = tissue = tumor_type = ""
             else:
