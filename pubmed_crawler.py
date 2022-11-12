@@ -206,7 +206,7 @@ def pull_info(pmids, curr_grants):
         if pmid in pmids:
 
             # GENERAL INFO
-            url = f"https://www.ncbi.nlm.nih.gov/pubmed/?term={pmid}"
+            url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
             doi = result.get('doi')
             journal_info = result.get('journalInfo').get('journal')
             journal = journal_info.get(
