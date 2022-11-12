@@ -227,8 +227,12 @@ def pull_info(pmids, curr_grants):
                 keywords = ""
 
             # ACCESSIBILITY
-            is_open = result.get('isOpenAccess')
-            if is_open == "Y":
+            is_open = [
+                code.get('availabilityCode') in ['F', 'OA', 'U']
+                for code
+                in result.get('fullTextUrlList').get('fullTextUrl')
+            ]
+            if any(is_open):
                 accessbility = "Open Access"
                 assay = tissue = tumor_type = ""
             else:
