@@ -1,4 +1,4 @@
-"""PubMed 'Crawler' of CSBC/PS-ON Publications.
+"""PubMed 'Crawler' of MC2 Center Publications.
 
 author: nasim.sanati
 maintainer: milen.nikolov
