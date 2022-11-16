@@ -171,7 +171,7 @@ def parse_dbgap(info):
     return gap_ids
 
 
-def pull_info(pmids, curr_grants):
+def pull_info(pmids, curr_grants, email):
     """Create dataframe of publications and their pulled data.
 
     Returns:
@@ -194,90 +194,89 @@ def pull_info(pmids, curr_grants):
         'pageSize': 1_000
     }
 
-    session = requests.Session()
-    response = json.loads(session.post(url=pmc_url, data=data).content)
+    response = json.loads(requests.post(url=pmc_url, data=data).content)
     results = response.get('resultList').get('result')
-    session.close()
 
     grants_list = curr_grants.grantNumber.tolist()
     table = []
-    for result in results:
-        pmid = result.get('pmid')
-        if pmid in pmids:
+    with requests.Session() as session:
+        for result in results:
+            pmid = result.get('pmid')
+            if pmid in pmids:
 
-            # GENERAL INFO
-            url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
-            doi = result.get('doi')
-            journal_info = result.get('journalInfo').get('journal')
-            journal = journal_info.get(
-                'isoabbreviation', journal_info.get('medlineAbbreviation'))
-            year = result.get('pubYear')
-            title = result.get('title').rstrip(".")
-            authors = [
-                f"{author.get('firstName')} {author.get('lastName')}"
-                for author
-                in result.get('authorList').get('author')
-            ]
-            abstract = result.get('abstractText', "No abstract available.").replace(
-                "<h4>", " ").replace("</h4>", ": ").lstrip()
-            keywords_check = result.get('keywordList')
-            if keywords_check:
-                keywords = keywords_check.get('keyword')
-            else:
-                keywords = ""
-
-            # ACCESSIBILITY
-            is_open = [
-                code.get('availabilityCode') in ['F', 'OA', 'U']
-                for code
-                in result.get('fullTextUrlList').get('fullTextUrl')
-            ]
-            if any(is_open):
-                accessbility = "Open Access"
-                assay = tissue = tumor_type = ""
-            else:
-                accessbility = "Restricted"
-                assay = tissue = tumor_type = "Pending Annotation"
-
-            # GRANTS
-            grants_check = result.get('grantsList')
-            if grants_check:
-                grants = [
-                    parse_grant(grant.get('grantId'))
-                    for grant in grants_check.get('grant')
-                    if grant.get('grantId')
-                    and re.search(r"CA\d", grant.get('grantId'), re.I)
+                # GENERAL INFO
+                url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
+                doi = result.get('doi')
+                journal_info = result.get('journalInfo').get('journal')
+                journal = journal_info.get(
+                    'isoabbreviation', journal_info.get('medlineAbbreviation'))
+                year = result.get('pubYear')
+                title = result.get('title').rstrip(".")
+                authors = [
+                    f"{author.get('firstName')} {author.get('lastName')}"
+                    for author
+                    in result.get('authorList').get('author')
                 ]
-                grants = set(filter(lambda x: x in grants_list, grants))
-            else:
-                grants = []
+                abstract = result.get('abstractText', "No abstract available.").replace(
+                    "<h4>", " ").replace("</h4>", ": ").lstrip()
+                keywords_check = result.get('keywordList')
+                if keywords_check:
+                    keywords = keywords_check.get('keyword')
+                else:
+                    keywords = ""
 
-            if grants:
-                center = curr_grants.loc[curr_grants.grantNumber.isin(grants)]
-                consortium = ", ".join(set(center.consortium))
-                themes = ", ".join(set(center.theme.sum()))
-            else:
-                consortium = themes = ""
+                # ACCESSIBILITY
+                unpaywall_url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
+                is_open = json.loads(session.get(unpaywall_url).content).get('is_oa')
+                if is_open:
+                    accessbility = "Open Access"
+                    assay = tissue = tumor_type = ""
+                else:
+                    accessbility = "Restricted"
+                    assay = tissue = tumor_type = "Pending Annotation"
 
-            # RELATED INFORMATION
-            # Contains: GEO, SRA, dbGaP
-            related_info = get_related_info(pmid)
-            gse_ids = parse_geo(related_info.get('gds'))
-            srx, srp = parse_sra(related_info.get('sra'))
-            dbgaps = parse_dbgap(related_info.get('gap'))
-            dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
+                # GRANTS
+                grants_check = result.get('grantsList')
+                if grants_check:
+                    grants = [
+                        parse_grant(grant.get('grantId'))
+                        for grant in grants_check.get('grant')
+                        if grant.get('grantId')
+                        and re.search(r"CA\d", grant.get('grantId'), re.I)
+                    ]
+                    grants = set(filter(lambda x: x in grants_list, grants))
+                else:
+                    grants = []
 
-            row = pd.DataFrame([[
-                "PublicationView", ", ".join(grants), consortium, themes, doi,
-                journal, int(pmid), url, title, int(year), ", ".join(keywords),
-                ", ".join(authors), abstract, assay, tumor_type, tissue,
-                ", ".join(dataset_ids), accessbility
-            ]], columns=columns)
-            table.append(row)
+                if grants:
+                    center = curr_grants.loc[curr_grants.grantNumber.isin(
+                        grants)]
+                    consortium = ", ".join(set(center.consortium))
+                    themes = ", ".join(set(center.theme.sum()))
+                else:
+                    consortium = themes = ""
+
+                # RELATED INFORMATION
+                # Contains: GEO, SRA, dbGaP
+                related_info = get_related_info(pmid)
+                gse_ids = parse_geo(related_info.get('gds'))
+                srx, srp = parse_sra(related_info.get('sra'))
+                dbgaps = parse_dbgap(related_info.get('gap'))
+                dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
+
+                row = pd.DataFrame([[
+                    "PublicationView", ", ".join(
+                        grants), consortium, themes, doi,
+                    journal, int(pmid), url, title, int(
+                        year), ", ".join(keywords),
+                    ", ".join(authors), abstract, assay, tumor_type, tissue,
+                    ", ".join(dataset_ids), accessbility
+                ]], columns=columns)
+                table.append(row)
     return pd.concat(table)
 
 
-def find_publications(syn, grant_id, table_id):
+def find_publications(syn, grant_id, table_id, email):
     """Get list of publications based on grants of consortia.
 
     Returns:
@@ -303,7 +302,7 @@ def find_publications(syn, grant_id, table_id):
 
     if pmids:
         print("Pulling information from publications... ")
-        table = pull_info(pmids, grants)
+        table = pull_info(pmids, grants, email)
     else:
         table = pd.DataFrame()
     print()
@@ -347,14 +346,15 @@ def main():
 
     # In order to make >3 Entrez requests/sec, 'email' and 'api_key'
     # params need to be set.
-    Entrez.email = os.getenv('ENTREZ_EMAIL')
+    email = os.getenv('ENTREZ_EMAIL')
+    Entrez.email = email
     Entrez.api_key = os.getenv('ENTREZ_API_KEY')
 
     if not os.environ.get('PYTHONHTTPSVERIFY', '') \
             and getattr(ssl, '_create_unverified_context', None):
         ssl._create_default_https_context = ssl._create_unverified_context
 
-    table = find_publications(syn, args.grant_id, args.table_id.strip())
+    table = find_publications(syn, args.grant_id, args.table_id.strip(), email)
     if table.empty:
         print("Manifest not generated.")
     else:
