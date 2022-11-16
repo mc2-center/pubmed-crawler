@@ -194,10 +194,8 @@ def pull_info(pmids, curr_grants):
         'pageSize': 1_000
     }
 
-    session = requests.Session()
-    response = json.loads(session.post(url=pmc_url, data=data).content)
+    response = json.loads(requests.post(url=pmc_url, data=data).content)
     results = response.get('resultList').get('result')
-    session.close()
 
     grants_list = curr_grants.grantNumber.tolist()
     table = []
