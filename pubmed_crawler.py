@@ -89,7 +89,7 @@ def get_pmids(grants):
         set: PubMed IDs
     """
     print("Getting PMIDs from NCBI... ", end="")
-    query = " OR ".join(grants.grantNumber.tolist())
+    query = " OR ".join(grants['grantNumber'].tolist())
     handle = Entrez.esearch(db="pubmed", term=query, retmax=100_000,
                             retmode="xml", sort="relevance")
     pmids = set(Entrez.read(handle).get('IdList'))
@@ -97,9 +97,8 @@ def get_pmids(grants):
 
     # Entrez docs suggests to use HTTP POST when text query is >700
     # characters. If warning is received, replace above code with following:
-    # session = requests.Session()
     # base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-    # results = json.loads(session.post(
+    # results = json.loads(requests.post(
     #     f"{base_url}?db=pubmed&term={query}&retmax=100000&retmode=json"))
     # pmids = set(results.get('esearchresult').get('idlist'))
 
@@ -249,10 +248,10 @@ def pull_info(pmids, curr_grants, email):
                     grants = []
 
                 if grants:
-                    center = curr_grants.loc[curr_grants.grantNumber.isin(
+                    center = curr_grants.loc[curr_grants['grantNumber'].isin(
                         grants)]
-                    consortium = ", ".join(set(center.consortium))
-                    themes = ", ".join(set(center.theme.sum()))
+                    consortium = ", ".join(set(center['consortium']))
+                    themes = ", ".join(set(center['theme'].sum()))
                 else:
                     consortium = themes = ""
 
@@ -292,8 +291,7 @@ def find_publications(syn, grant_id, table_id, email):
         print(f"Comparing with table: {table_name}...", end="")
         current_pmids = (
             syn.tableQuery(f"SELECT pubMedId FROM {table_id}")
-            .asDataFrame()
-            .pubMedId
+            .asDataFrame()['pubMedId']
             .astype(str)
             .tolist()
         )
