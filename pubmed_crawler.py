@@ -72,13 +72,13 @@ def get_grants(syn, table_id):
     Returns:
         set: valid grant numbers, e.g. non-empty strings
     """
-    print("Querying for grant numbers... ", end="")
+    print("Querying for grant numbers... ")
     grants = (
         syn.tableQuery(
             f"SELECT grantNumber, consortium, theme FROM {table_id}")
         .asDataFrame()
     )
-    print(f"✓\n  Number of grants: {len(grants)}\n")
+    print(f"  Number of grants: {len(grants)}\n")
     return grants
 
 
@@ -88,7 +88,7 @@ def get_pmids(grants):
     Returns:
         set: PubMed IDs
     """
-    print("Getting PMIDs from NCBI... ", end="")
+    print("Getting PMIDs from NCBI... ")
     query = " OR ".join(grants['grantNumber'].tolist())
     handle = Entrez.esearch(db="pubmed", term=query, retmax=100_000,
                             retmode="xml", sort="relevance")
@@ -102,7 +102,7 @@ def get_pmids(grants):
     #     f"{base_url}?db=pubmed&term={query}&retmax=100000&retmode=json"))
     # pmids = set(results.get('esearchresult').get('idlist'))
 
-    print(f"✓\n  Total unique publications: {len(pmids)}\n")
+    print(f"  Total unique publications: {len(pmids)}\n")
     return pmids
 
 
@@ -288,7 +288,7 @@ def find_publications(syn, grant_id, table_id, email):
     # not already listed in the provided table.
     if table_id:
         table_name = syn.get(table_id).name
-        print(f"Comparing with table: {table_name}...", end="")
+        print(f"Comparing with table: {table_name}...")
         current_pmids = (
             syn.tableQuery(f"SELECT pubMedId FROM {table_id}")
             .asDataFrame()['pubMedId']
@@ -296,7 +296,7 @@ def find_publications(syn, grant_id, table_id, email):
             .tolist()
         )
         pmids -= set(current_pmids)
-        print(f" ✓\n  New publications found: {len(pmids)}\n")
+        print(f"  New publications found: {len(pmids)}\n")
 
     if pmids:
         print("Pulling information from publications... ")
@@ -356,14 +356,13 @@ def main():
     if table.empty:
         print("Manifest not generated.")
     else:
-        print("Generating manifest... ", end="")
+        print("Generating manifest... ")
 
         # Generate manifest with open-access publications listed first.
         generate_manifest(
             syn,
             table.sort_values(by='publicationAccessibility'),
             args.output_name)
-        print("✓")
 
     print("-- DONE --")
 
