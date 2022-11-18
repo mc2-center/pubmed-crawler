@@ -231,7 +231,7 @@ def pull_info(pmids, curr_grants, email):
                     accessbility = "Open Access"
                     assay = tissue = tumor_type = ""
                 else:
-                    accessbility = "Restricted"
+                    accessbility = "Restricted Access"
                     assay = tissue = tumor_type = "Pending Annotation"
 
                 # GRANTS
