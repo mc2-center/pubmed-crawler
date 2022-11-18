@@ -176,14 +176,6 @@ def pull_info(pmids, curr_grants, email):
     Returns:
         df: publications data
     """
-    columns = [
-        "component", "publicationGrantNumber", "publicationConsortiumName",
-        "publicationThemeName", "publicationDoi", "publicationJournal",
-        "pubmedId", "pubmedUrl", "publicationTitle", "publicationYear",
-        "publicationKeywords", "publicationAuthors", "publicationAbstract",
-        "publicationAssay", "publicationTumorType", "publicationTissue",
-        "publicationDatasetAlias", "publicationAccessibility"
-    ]
     pmc_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/searchPOST"
     query = " OR ".join(pmids)
     data = {
@@ -192,7 +184,6 @@ def pull_info(pmids, curr_grants, email):
         'format': "json",
         'pageSize': 1_000
     }
-
     response = json.loads(requests.post(url=pmc_url, data=data).content)
     results = response.get('resultList').get('result')
 
@@ -218,11 +209,7 @@ def pull_info(pmids, curr_grants, email):
                 ]
                 abstract = result.get('abstractText', "No abstract available.").replace(
                     "<h4>", " ").replace("</h4>", ": ").lstrip()
-                keywords_check = result.get('keywordList')
-                if keywords_check:
-                    keywords = keywords_check.get('keyword')
-                else:
-                    keywords = ""
+                keywords = result.get('keywordList', {}).get('keyword', "")
 
                 # ACCESSIBILITY
                 unpaywall_url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
@@ -235,19 +222,17 @@ def pull_info(pmids, curr_grants, email):
                     assay = tissue = tumor_type = "Pending Annotation"
 
                 # GRANTS
-                grants_check = result.get('grantsList')
-                if grants_check:
-                    grants = [
-                        parse_grant(grant.get('grantId'))
-                        for grant in grants_check.get('grant')
-                        if grant.get('grantId')
-                        and re.search(r"CA\d", grant.get('grantId'), re.I)
-                    ]
-                    grants = set(filter(lambda x: x in grants_list, grants))
-                else:
-                    grants = []
+                grants = result.get('grantList', {}).get('grant', [])
+                related_grants = [
+                    parse_grant(grant.get('grantId'))
+                    for grant in grants
+                    if grant.get('grantId')
+                    and re.search(r"CA\d", grant.get('grantId'), re.I)
+                ]
+                related_grants = set(
+                    filter(lambda x: x in grants_list, related_grants))
 
-                if grants:
+                if related_grants:
                     center = curr_grants.loc[curr_grants['grantNumber'].isin(
                         grants)]
                     consortium = ", ".join(set(center['consortium']))
@@ -263,14 +248,28 @@ def pull_info(pmids, curr_grants, email):
                 dbgaps = parse_dbgap(related_info.get('gap'))
                 dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
 
-                row = pd.DataFrame([[
-                    "PublicationView", ", ".join(
-                        grants), consortium, themes, doi,
-                    journal, int(pmid), url, title, int(
-                        year), ", ".join(keywords),
-                    ", ".join(authors), abstract, assay, tumor_type, tissue,
-                    ", ".join(dataset_ids), accessbility
-                ]], columns=columns)
+                # Conslidate all info into a single df, then append to list.
+                publication_info = {
+                    'component': ["PublicationView"],
+                    'publicationGrantNumber': [", ".join(related_grants)],
+                    'publicationConsortiumName': [consortium],
+                    'publicationThemeName': [themes],
+                    'publicationDoi': [doi],
+                    'publicationJournal': [journal],
+                    'pubmedId': [int(pmid)],
+                    'pubmedUrl': [url],
+                    'publicationTitle': [title],
+                    'publicationYear': [int(year)],
+                    'publicationKeywords': [", ".join(keywords)],
+                    'publicationAuthors': [", ".join(authors)],
+                    'publicationAbstract': [abstract],
+                    'publicationAssay': [assay],
+                    'publicationTumorType': [tumor_type],
+                    'publicationTissue': [tissue],
+                    'publicationDatasetAlias': [", ".join(dataset_ids)],
+                    'publicationAccessbility': [accessbility]
+                }
+                row = pd.DataFrame(publication_info)
                 table.append(row)
     return pd.concat(table)
 
