@@ -182,7 +182,7 @@ def pull_info(pmids, curr_grants, email):
         "pubmedId", "pubmedUrl", "publicationTitle", "publicationYear",
         "publicationKeywords", "publicationAuthors", "publicationAbstract",
         "publicationAssay", "publicationTumorType", "publicationTissue",
-        "publicationDatasetAlias", "publicationAccess"
+        "publicationDatasetAlias", "publicationAccessibility"
     ]
     pmc_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/searchPOST"
     query = " OR ".join(pmids)
