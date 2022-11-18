@@ -267,7 +267,7 @@ def pull_info(pmids, curr_grants, email):
                     'publicationTumorType': [tumor_type],
                     'publicationTissue': [tissue],
                     'publicationDatasetAlias': [", ".join(dataset_ids)],
-                    'publicationAccessbility': [accessbility]
+                    'publicationAccessibility': [accessbility]
                 }
                 row = pd.DataFrame(publication_info)
                 table.append(row)
