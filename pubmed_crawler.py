@@ -90,8 +90,11 @@ def get_pmids(grants):
     """
     print("Getting PMIDs from NCBI... ")
     query = " OR ".join(grants['grantNumber'].tolist())
-    handle = Entrez.esearch(db="pubmed", term=query, retmax=100_000,
-                            retmode="xml", sort="relevance")
+    handle = Entrez.esearch(db="pubmed",
+                            term=query,
+                            retmax=100_000,
+                            retmode="xml",
+                            sort="relevance")
     pmids = set(Entrez.read(handle).get('IdList'))
     handle.close()
 
@@ -118,8 +121,10 @@ def get_related_info(pmid):
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
     """
-    handle = Entrez.elink(dbfrom="pubmed", db="gds,sra,gap",
-                          id=pmid, retmode="xml")
+    handle = Entrez.elink(dbfrom="pubmed",
+                          db="gds,sra,gap",
+                          id=pmid,
+                          retmode="xml")
     results = Entrez.read(handle)[0].get('LinkSetDb')
     handle.close()
 
@@ -250,24 +255,24 @@ def pull_info(pmids, curr_grants, email):
 
                 # Conslidate all info into a single df, then append to list.
                 publication_info = {
-                    'component': ["PublicationView"],
-                    'publicationGrantNumber': [", ".join(related_grants)],
-                    'publicationConsortiumName': [consortium],
-                    'publicationThemeName': [themes],
-                    'publicationDoi': [doi],
-                    'publicationJournal': [journal],
-                    'pubmedId': [int(pmid)],
-                    'pubmedUrl': [url],
-                    'publicationTitle': [title],
-                    'publicationYear': [int(year)],
-                    'publicationKeywords': [", ".join(keywords)],
-                    'publicationAuthors': [", ".join(authors)],
-                    'publicationAbstract': [abstract],
-                    'publicationAssay': [assay],
-                    'publicationTumorType': [tumor_type],
-                    'publicationTissue': [tissue],
-                    'publicationDatasetAlias': [", ".join(dataset_ids)],
-                    'publicationAccessibility': [accessbility]
+                    'Component': ["PublicationView"],
+                    'Publication Grant Number': [", ".join(related_grants)],
+                    'Publication Consortium Name': [consortium],
+                    'Publication Theme Name': [themes],
+                    'Publication Doi': [doi],
+                    'Publication Journal': [journal],
+                    'Pubmed Id': [int(pmid)],
+                    'Pubmed Url': [url],
+                    'Publication Title': [title],
+                    'Publication Year': [int(year)],
+                    'Publication Keywords': [", ".join(keywords)],
+                    'Publication Authors': [", ".join(authors)],
+                    'Publication Abstract': [abstract],
+                    'Publication Assay': [assay],
+                    'Publication TumorType': [tumor_type],
+                    'Publication Tissue': [tissue],
+                    'Publication Dataset Alias': [", ".join(dataset_ids)],
+                    'Publication Accessibility': [accessbility]
                 }
                 row = pd.DataFrame(publication_info)
                 table.append(row)
@@ -360,7 +365,7 @@ def main():
         # Generate manifest with open-access publications listed first.
         generate_manifest(
             syn,
-            table.sort_values(by='publicationAccessibility'),
+            table.sort_values(by='Publication Accessibility'),
             args.output_name)
 
     print("-- DONE --")
