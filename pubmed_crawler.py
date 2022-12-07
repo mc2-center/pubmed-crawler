@@ -365,7 +365,7 @@ def main():
         # Generate manifest with open-access publications listed first.
         generate_manifest(
             syn,
-            table.sort_values(by='publicationAccessibility'),
+            table.sort_values(by='Publication Accessibility'),
             args.output_name)
 
     print("-- DONE --")
