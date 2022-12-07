@@ -43,26 +43,20 @@ def login():
 
 def get_args():
     """Set up command-line interface and get arguments."""
-    parser = argparse.ArgumentParser(description=(
-        "Get PubMed information from a list of grant numbers and put "
-        "the results into a CSV file.  Table ID can be provided if "
-        "interested in only scrapping for new publications."))
-    parser.add_argument(
-        "-g",
-        "--grant_id",
-        type=str,
-        default="syn21918972",
-        help=("Synapse table/view ID containing grant numbers "
-              "in 'grantNumber' column. (Default: syn21918972)"))
-    parser.add_argument("-t",
-                        "--table_id",
-                        type=str,
-                        required=True,
+    parser = argparse.ArgumentParser(
+        description=(
+            "Get PubMed information from a list of grant numbers and put "
+            "the results into a CSV file.  Table ID can be provided if "
+            "interested in only scrapping for new publications."))
+    parser.add_argument("-g", "--grant_id",
+                        type=str, default="syn21918972",
+                        help=("Synapse table/view ID containing grant numbers "
+                              "in 'grantNumber' column. (Default: syn21918972)"))
+    parser.add_argument("-t", "--table_id",
+                        type=str, required=True,
                         help="Current Synapse table holding PubMed info.")
-    parser.add_argument("-o",
-                        "--output_name",
-                        type=str,
-                        default="publications_" +
+    parser.add_argument("-o", "--output_name",
+                        type=str, default="publications_" +
                         datetime.today().strftime('%Y-%m-%d'),
                         help=("Filename for output filename. (Default: "
                               "publications_<current-date>)"))
@@ -80,8 +74,10 @@ def get_grants(syn, table_id):
     """
     print("Querying for grant numbers... ")
     grants = (
-        syn.tableQuery(f"SELECT grantNumber, consortium, theme FROM {table_id}"
-                       ).asDataFrame())
+        syn.tableQuery(
+            f"SELECT grantNumber, consortium, theme FROM {table_id}")
+        .asDataFrame()
+    )
     print(f"  Number of grants: {len(grants)}\n")
     return grants
 
@@ -159,11 +155,13 @@ def parse_sra(info):
         tags = info.find_all('Item', attrs={'Name': "ExpXml"})
         srx_ids = [
             re.search(r'Experiment acc="(.*?)"', tag.text).group(1)
-            for tag in tags if re.search(r'Experiment acc="(.*?)"', tag.text)
+            for tag in tags
+            if re.search(r'Experiment acc="(.*?)"', tag.text)
         ]
         srp_ids = {
             re.search(r'Study acc="(.*?)"', tag.text).group(1)
-            for tag in tags if re.search(r'Study acc="(.*?)"', tag.text)
+            for tag in tags
+            if re.search(r'Study acc="(.*?)"', tag.text)
         }
     return srx_ids, srp_ids
 
@@ -211,18 +209,16 @@ def pull_info(pmids, curr_grants, email):
                 title = result.get('title').rstrip(".")
                 authors = [
                     f"{author.get('firstName')} {author.get('lastName')}"
-                    for author in result.get('authorList').get('author')
+                    for author
+                    in result.get('authorList').get('author')
                 ]
-                abstract = result.get('abstractText',
-                                      "No abstract available.").replace(
-                                          "<h4>", " ").replace("</h4>",
-                                                               ": ").lstrip()
+                abstract = result.get('abstractText', "No abstract available.").replace(
+                    "<h4>", " ").replace("</h4>", ": ").lstrip()
                 keywords = result.get('keywordList', {}).get('keyword', "")
 
                 # ACCESSIBILITY
                 unpaywall_url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
-                is_open = json.loads(
-                    session.get(unpaywall_url).content).get('is_oa')
+                is_open = json.loads(session.get(unpaywall_url).content).get('is_oa')
                 if is_open:
                     accessbility = "Open Access"
                     assay = tissue = tumor_type = ""
@@ -233,7 +229,8 @@ def pull_info(pmids, curr_grants, email):
                 # GRANTS
                 grants = result.get('grantList', {}).get('grant', [])
                 related_grants = [
-                    parse_grant(grant.get('grantId')) for grant in grants
+                    parse_grant(grant.get('grantId'))
+                    for grant in grants
                     if grant.get('grantId')
                     and re.search(r"CA\d", grant.get('grantId'), re.I)
                 ]
@@ -296,8 +293,12 @@ def find_publications(syn, grant_id, table_id, email):
     if table_id:
         table_name = syn.get(table_id).name
         print(f"Comparing with table: {table_name}...")
-        current_pmids = (syn.tableQuery(f"SELECT pubMedId FROM {table_id}").
-                         asDataFrame()['pubMedId'].astype(str).tolist())
+        current_pmids = (
+            syn.tableQuery(f"SELECT pubMedId FROM {table_id}")
+            .asDataFrame()['pubMedId']
+            .astype(str)
+            .tolist()
+        )
         pmids -= set(current_pmids)
         print(f"  New publications found: {len(pmids)}\n")
 
@@ -362,9 +363,10 @@ def main():
         print("Generating manifest... ")
 
         # Generate manifest with open-access publications listed first.
-        generate_manifest(syn,
-                          table.sort_values(by='Publication Accessibility'),
-                          args.output_name)
+        generate_manifest(
+            syn,
+            table.sort_values(by='publicationAccessibility'),
+            args.output_name)
 
     print("-- DONE --")
 
