@@ -228,7 +228,7 @@ def pull_info(pmids, curr_grants, email):
                     assay = tissue = tumor_type = "Pending Annotation"
 
                 # GRANTS
-                grants = result.get('grantList', {}).get('grant', [])
+                grants = result.get('grantsList', {}).get('grant', [])
                 related_grants = [
                     parse_grant(grant.get('grantId'))
                     for grant in grants
