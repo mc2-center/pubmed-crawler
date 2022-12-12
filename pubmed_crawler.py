@@ -56,8 +56,8 @@ def get_args():
                         type=str, required=True,
                         help="Current Synapse table holding PubMed info.")
     parser.add_argument("-o", "--output_name",
-                        type=str, default="publications_" +
-                        datetime.today().strftime('%Y-%m-%d'),
+                        type=str, default=datetime.today().strftime('%Y-%m-%d') +
+                        "_publications-manifest",
                         help=("Filename for output filename. (Default: "
                               "publications_<current-date>)"))
     return parser.parse_args()
@@ -218,7 +218,8 @@ def pull_info(pmids, curr_grants, email):
 
                 # ACCESSIBILITY
                 unpaywall_url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
-                is_open = json.loads(session.get(unpaywall_url).content).get('is_oa')
+                is_open = json.loads(session.get(
+                    unpaywall_url).content).get('is_oa')
                 if is_open:
                     accessbility = "Open Access"
                     assay = tissue = tumor_type = ""
