@@ -112,8 +112,9 @@ def get_pmids(grants):
 
 def parse_grant(grant):
     """Parse for grant number from grant annotation."""
-    grant_info = re.search(r"(CA\d+)[ /-]?", grant, re.I)
-    return grant_info.group(1).upper()
+    grant_info = re.search(r"(CA[ /-]?\d{6})", grant, re.I)
+    grant_number = grant_info.group(1).upper()
+    return grant_number.replace(" ", "").replace("/", "").replace("-", "")
 
 
 def get_related_info(pmid):
