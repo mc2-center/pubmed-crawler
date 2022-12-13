@@ -89,7 +89,8 @@ def get_pmids(grants):
         set: PubMed IDs
     """
     print("Getting PMIDs from NCBI... ")
-    query = " OR ".join(grants['grantNumber'].tolist())
+    grant_numbers = grants['grantNumber'].tolist()
+    query = "[Grant number] OR ".join(grant_numbers) + "[Grant number]"
     handle = Entrez.esearch(db="pubmed",
                             term=query,
                             retmax=100_000,
@@ -109,10 +110,11 @@ def get_pmids(grants):
     return pmids
 
 
-def parse_grant(grant):
-    """Parse for grant number from grant annotation."""
-    grant_info = re.search(r"(CA\d+)[ /-]?", grant, re.I)
-    return grant_info.group(1).upper()
+def parse_grant(pattern, grant):
+    """Parse for grant number based on given pattern."""
+    grant_info = re.search(pattern, grant)
+    grant_number = grant_info.group(1).upper()
+    return grant_number.replace(" ", "").replace("/", "").replace("-", "")
 
 
 def get_related_info(pmid):
@@ -229,18 +231,19 @@ def pull_info(pmids, curr_grants, email):
 
                 # GRANTS
                 grants = result.get('grantsList', {}).get('grant', [])
+                pattern = re.compile(r"(CA[ /-]?\d{6})", re.I)
                 related_grants = [
-                    parse_grant(grant.get('grantId'))
+                    parse_grant(pattern, grant.get('grantId'))
                     for grant in grants
                     if grant.get('grantId')
-                    and re.search(r"CA\d", grant.get('grantId'), re.I)
+                    and re.search(pattern, grant.get('grantId'))
                 ]
                 related_grants = set(
                     filter(lambda x: x in grants_list, related_grants))
 
                 if related_grants:
                     center = curr_grants.loc[curr_grants['grantNumber'].isin(
-                        grants)]
+                        related_grants)]
                     consortium = ", ".join(set(center['consortium']))
                     themes = ", ".join(set(center['theme'].sum()))
                 else:
