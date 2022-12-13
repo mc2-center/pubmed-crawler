@@ -89,7 +89,8 @@ def get_pmids(grants):
         set: PubMed IDs
     """
     print("Getting PMIDs from NCBI... ")
-    query = " OR ".join(grants['grantNumber'].tolist())
+    grant_numbers = grants['grantNumber'].tolist()
+    query = "[Grant number] OR ".join(grant_numbers) + "[Grant number]"
     handle = Entrez.esearch(db="pubmed",
                             term=query,
                             retmax=100_000,
