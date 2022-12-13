@@ -235,14 +235,13 @@ def pull_info(pmids, curr_grants, email):
                     parse_grant(grant.get('grantId'))
                     for grant in grants
                     if grant.get('grantId')
-                    and re.search(r"CA\d", grant.get('grantId'), re.I)
                 ]
                 related_grants = set(
                     filter(lambda x: x in grants_list, related_grants))
 
                 if related_grants:
                     center = curr_grants.loc[curr_grants['grantNumber'].isin(
-                        grants)]
+                        related_grants)]
                     consortium = ", ".join(set(center['consortium']))
                     themes = ", ".join(set(center['theme'].sum()))
                 else:
