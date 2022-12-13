@@ -110,9 +110,9 @@ def get_pmids(grants):
     return pmids
 
 
-def parse_grant(grant):
-    """Parse for grant number from grant annotation."""
-    grant_info = re.search(r"(CA[ /-]?\d{6})", grant, re.I)
+def parse_grant(pattern, grant):
+    """Parse for grant number based on given pattern."""
+    grant_info = re.search(pattern, grant)
     grant_number = grant_info.group(1).upper()
     return grant_number.replace(" ", "").replace("/", "").replace("-", "")
 
@@ -231,10 +231,12 @@ def pull_info(pmids, curr_grants, email):
 
                 # GRANTS
                 grants = result.get('grantsList', {}).get('grant', [])
+                pattern = re.compile(r"(CA[ /-]?\d{6})", re.I)
                 related_grants = [
-                    parse_grant(grant.get('grantId'))
+                    parse_grant(pattern, grant.get('grantId'))
                     for grant in grants
                     if grant.get('grantId')
+                    and re.search(pattern, grant.get('grantId'))
                 ]
                 related_grants = set(
                     filter(lambda x: x in grants_list, related_grants))
