@@ -20,9 +20,9 @@
 <p>
 
 Manifests for the CCKP can be generated using Docker or Python (3.7+).
-Regardless of approach, a Synapse account is required, as well as an Entrez
-account (strongly recommended). Failing to provide Entrez credentials will
-most likely result in timeout errors from NCBI.
+Regardless of approach, a One Sage account is required, as well as an
+Entrez account (strongly recommended). Failing to provide Entrez credentials 
+will most likely result in timeout errors from NCBI.
 
 ## :whale: Generate with Docker
 
@@ -41,7 +41,7 @@ most likely result in timeout errors from NCBI.
     ```
 
 2. Open a terminal and log into the Synapse Docker registry. Provide your
-   Synapse credentials when prompted. You should only need to log in once,
+   One Sage credentials when prompted. You should only need to log in once,
    assuming you do not switch registries.
 
     ```
