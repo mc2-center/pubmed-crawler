@@ -315,7 +315,7 @@ def find_publications(syn, grant_id, table_id, email):
     return table
 
 
-def generate_manifest(syn, table, output):
+def generate_manifest(table, output):
     """Generate manifest file (xlsx) with given publications data."""
     wb = Workbook()
     ws = wb.active
@@ -324,10 +324,11 @@ def generate_manifest(syn, table, output):
         ws.append(r)
 
     # Get latest CV terms to save as "standard_terms".
-    query = ("SELECT attribute, preferredTerm FROM syn26433610 "
-             "WHERE attribute <> ''"
-             "ORDER BY attribute, preferredTerm")
-    cv_terms = syn.tableQuery(query).asDataFrame().fillna("").drop_duplicates()
+    annots = ["assay", "tissue", "tumorType"]
+    cv_file = "https://raw.githubusercontent.com/mc2-center/data-models/main/all_valid_values.csv"
+    cv_terms = pd.read_csv(cv_file)
+    cv_terms = cv_terms.loc[cv_terms['category'].str.contains("publication") |
+                            cv_terms['category'].isin(annots)]
     ws2 = wb.create_sheet("standard_terms")
     for row in dataframe_to_rows(cv_terms, index=False, header=True):
         ws2.append(row)
@@ -336,10 +337,8 @@ def generate_manifest(syn, table, output):
     ft = Font(bold=True)
     ws2["A1"].font = ft
     ws2["B1"].font = ft
-    ws2["C1"].font = ft
-    ws2.column_dimensions['A'].width = 18
-    ws2.column_dimensions['B'].width = 60
-    ws2.column_dimensions['C'].width = 12
+    ws2.column_dimensions['A'].width = 15
+    ws2.column_dimensions['B'].width = 65
     ws2.protection.sheet = True
 
     wb.save(os.path.join("output", output + ".xlsx"))
@@ -368,7 +367,6 @@ def main():
 
         # Generate manifest with open-access publications listed first.
         generate_manifest(
-            syn,
             table.sort_values(by='Publication Accessibility'),
             args.output_name)
 
