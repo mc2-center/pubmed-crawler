@@ -10,13 +10,9 @@
 <br/>
 
 <p align="center">
-  <img src="https://img.shields.io/maintenance/yes/2022?style=flat-square">
-  <a href="https://github.com/mc2-center/pubmed-crawler/commits/main">
-    <img src="https://img.shields.io/github/last-commit/mc2-center/pubmed-crawler?color=informational&style=flat-square">
-  </a>
-  <a href="https://github.com/mc2-center/pubmed-crawler/issues">
-    <img src="https://img.shields.io/github/issues-raw/mc2-center/pubmed-crawler?color=important&style=flat-square">
-  </a>
+  <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/release/mc2-center/pubmed-crawler?label=latest%20release&display_name=release&style=flat-square">
+  <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/mc2-center/pubmed-crawler?style=flat-square&color=green">
+  <img alt="GitHub" src="https://img.shields.io/github/license/mc2-center/pubmed-crawler?style=flat-square&color=orange">
 <p>
 
 Manifests for the CCKP can be generated using Docker or Python (3.7+).
