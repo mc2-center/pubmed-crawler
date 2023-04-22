@@ -17,7 +17,7 @@
 
 Manifests for the CCKP can be generated using Docker or Python (3.7+).
 Regardless of approach, a One Sage account is required, as well as an
-Entrez account (strongly recommended). Failing to provide Entrez credentials 
+Entrez account (strongly recommended). Failing to provide Entrez credentials
 will most likely result in timeout errors from NCBI.
 
 ## :whale: Generate with Docker
@@ -36,19 +36,22 @@ will most likely result in timeout errors from NCBI.
     ENTREZ_API_KEY=<apikey>
     ```
 
-2. Open a terminal and log into the Synapse Docker registry. Provide your
-   One Sage credentials when prompted. You should only need to log in once,
-   assuming you do not switch registries.
+2. Open a terminal and log into the Synapse Docker registry with your Synapse
+    PAT. Once logged in, you should not have to log in again, unless you log
+    out or switch Docker registries.
 
     ```
-    docker login docker.synapse.org
+    docker login docker.synapse.org --username <syn_username>
     ```
 
-    You can also log in non-interactively through `STDIN` - this will prevent
-    your password from being saved in the shell's history and log files:
+    When prompted for a password, enter your PAT.
+
+    You can alternatively log in non-interactively through `STDIN` - this will
+    prevent your password from being saved in the shell's history and log files.
+    For example, if you saved your PAT into a file called `synapse.token`:
 
     ```
-    cat ~/syn_password.txt | \
+    cat ~/synapse.token | \
       docker login docker.synapse.org --username <syn_username> --password-stdin
     ```
 
@@ -71,6 +74,8 @@ To pull the latest Docker changes, run the following command:
 ```bash
 docker pull docker.synapse.org/syn21498902/pubmed_crawler
 ```
+
+### Output
 
 Depending on how many new publications have been added to PubMed since the last
 scrape (and NCBI’s current requests traffic), this step could take anywhere from
@@ -165,7 +170,7 @@ is the current date.
 
 Fill out the manifest(s) as needed, using the pre-defined Controlled Vocabulary
 listed in **standard_terms** for applicable columns. Once complete, validate
-and upload the manifest(s) with the [MC2 Data Curator App].
+and upload the manifest(s) with the [Data Curator App] (coming soon!).
 
 <!-- Links -->
 
@@ -174,6 +179,6 @@ and upload the manifest(s) with the [MC2 Data Curator App].
 [ncbi account info]: https://support.nlm.nih.gov/knowledgebase/article/KA-05317/en-us
 [conda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html
 [pyenv]: https://github.com/pyenv/pyenv#getting-pyenv
-[mc2 data curator app]: https://sagebio.shinyapps.io/csbc_data_curator/
+[data curator app]: https://sagebio.shinyapps.io/csbc_data_curator/
 [syn21918972]: https://www.synapse.org/#!Synapse:syn21918972/tables/
 [`syn21868591`]: https://www.synapse.org/#!Synapse:syn21868591/tables/
