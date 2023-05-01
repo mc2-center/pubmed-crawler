@@ -310,9 +310,10 @@ def find_publications(syn, grant_id, table_id, email):
     if pmids:
         print("Pulling information from publications... ")
         table = pull_info(pmids, grants, email)
+        print(f"  Publications pre-annotated: {len(table.index)}\n")
     else:
         table = pd.DataFrame()
-    print()
+        print()
     return table
 
 
