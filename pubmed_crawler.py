@@ -199,7 +199,8 @@ def pull_info(pmids, curr_grants, email):
     with requests.Session() as session:
         for result in results:
             pmid = result.get('pmid')
-            if pmid in pmids:
+            pub_type = result.get('pubTypeList').get('pubType')
+            if pmid in pmids and "Published Erratum" not in pub_type:
 
                 # GENERAL INFO
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
