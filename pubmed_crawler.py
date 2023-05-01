@@ -245,7 +245,7 @@ def pull_info(pmids, curr_grants, email):
                 if related_grants:
                     center = curr_grants.loc[curr_grants['grantNumber'].isin(
                         related_grants)]
-                    consortium = ", ".join(set(center['consortium']))
+                    consortium = ", ".join(set(center['consortium'].sum()))
                     themes = ", ".join(set(center['theme'].sum()))
                 else:
                     consortium = themes = ""
