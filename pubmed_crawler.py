@@ -199,7 +199,8 @@ def pull_info(pmids, curr_grants, email):
     with requests.Session() as session:
         for result in results:
             pmid = result.get('pmid')
-            if pmid in pmids:
+            pub_type = result.get('pubTypeList').get('pubType')
+            if pmid in pmids and "Published Erratum" not in pub_type:
 
                 # GENERAL INFO
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
@@ -244,7 +245,7 @@ def pull_info(pmids, curr_grants, email):
                 if related_grants:
                     center = curr_grants.loc[curr_grants['grantNumber'].isin(
                         related_grants)]
-                    consortium = ", ".join(set(center['consortium']))
+                    consortium = ", ".join(set(center['consortium'].sum()))
                     themes = ", ".join(set(center['theme'].sum()))
                 else:
                     consortium = themes = ""
@@ -309,9 +310,10 @@ def find_publications(syn, grant_id, table_id, email):
     if pmids:
         print("Pulling information from publications... ")
         table = pull_info(pmids, grants, email)
+        print(f"  Publications pre-annotated: {len(table.index)}\n")
     else:
         table = pd.DataFrame()
-    print()
+        print()
     return table
 
 
