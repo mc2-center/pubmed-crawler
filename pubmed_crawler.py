@@ -210,11 +210,15 @@ def pull_info(pmids, curr_grants, email):
                     'isoabbreviation', journal_info.get('medlineAbbreviation'))
                 year = result.get('pubYear')
                 title = result.get('title').rstrip(".")
-                authors = [
-                    f"{author.get('firstName')} {author.get('lastName')}"
-                    for author
-                    in result.get('authorList').get('author')
-                ]
+                try:
+                    authors = [
+                        f"{author.get('firstName')} {author.get('lastName')}"
+                        for author
+                        in result.get('authorList').get('author')
+                    ]
+                except AttributeError:
+                    # There is not an author list with this publication.
+                    authors = []
                 abstract = result.get('abstractText', "No abstract available.").replace(
                     "<h4>", " ").replace("</h4>", ": ").lstrip()
                 keywords = result.get('keywordList', {}).get('keyword', "")
@@ -274,7 +278,7 @@ def pull_info(pmids, curr_grants, email):
                     'Publication Authors': [", ".join(authors)],
                     'Publication Abstract': [abstract],
                     'Publication Assay': [assay],
-                    'Publication TumorType': [tumor_type],
+                    'Publication Tumor Type': [tumor_type],
                     'Publication Tissue': [tissue],
                     'Publication Dataset Alias': [", ".join(dataset_ids)],
                     'Publication Accessibility': [accessbility]
