@@ -1,5 +1,5 @@
-synapseclient >= 2.7.0
-pandas >= 1.5.1
+synapseclient >= 3.0.0
+pandas >= 2.1.1
 biopython >= 1.79
 beautifulsoup4 >= 4.11.1
 lxml >= 4.9.1
