@@ -278,7 +278,7 @@ def pull_info(pmids, curr_grants, email):
                     'Publication Authors': [", ".join(authors)],
                     'Publication Abstract': [abstract],
                     'Publication Assay': [assay],
-                    'Publication TumorType': [tumor_type],
+                    'Publication Tumor Type': [tumor_type],
                     'Publication Tissue': [tissue],
                     'Publication Dataset Alias': [", ".join(dataset_ids)],
                     'Publication Accessibility': [accessbility]
