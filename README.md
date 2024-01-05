@@ -15,8 +15,8 @@
   <img alt="GitHub" src="https://img.shields.io/github/license/mc2-center/pubmed-crawler?style=flat-square&color=orange">
 <p>
 
-Manifests for the CCKP can be generated using Docker or Python (3.7+).
-Regardless of approach, a One Sage account is required, as well as an
+Manifests for the CCKP can be generated using Docker or Python (3.9+).
+Regardless of approach, a Synapse account is required, as well as an
 Entrez account (strongly recommended). Failing to provide Entrez credentials
 will most likely result in timeout errors from NCBI.
 
@@ -24,36 +24,18 @@ will most likely result in timeout errors from NCBI.
 
 ### Setup
 
-1. Create a file called `.env` and update its contents with your Synapse
-   [Personal Access Token] (PAT) and [NCBI account info].
+Create a file called `.env` and update its contents with your Synapse
+[Personal Access Token] (PAT) and [NCBI account info].
 
-    ```
-    # Synapse Credentials
-    SYNAPSE_AUTH_TOKEN=<PAT>
+```
+# Synapse Credentials
+SYNAPSE_AUTH_TOKEN=<PAT>
 
-    # Entrez Credentials
-    ENTREZ_EMAIL=<email>
-    ENTREZ_API_KEY=<apikey>
-    ```
+# Entrez Credentials
+ENTREZ_EMAIL=<email>
+ENTREZ_API_KEY=<apikey>
+```
 
-2. Open a terminal and log into the Synapse Docker registry with your Synapse
-    PAT. Once logged in, you should not have to log in again, unless you log
-    out or switch Docker registries.
-
-    ```
-    docker login docker.synapse.org --username <syn_username>
-    ```
-
-    When prompted for a password, enter your PAT.
-
-    You can alternatively log in non-interactively through `STDIN` - this will
-    prevent your password from being saved in the shell's history and log files.
-    For example, if you saved your PAT into a file called `synapse.token`:
-
-    ```
-    cat ~/synapse.token | \
-      docker login docker.synapse.org --username <syn_username> --password-stdin
-    ```
 
 ### Usage
 
@@ -72,7 +54,7 @@ If this is your first time running the command, Docker will first pull the image
 To pull the latest Docker changes, run the following command:
 
 ```bash
-docker pull docker.synapse.org/syn21498902/pubmed_crawler
+docker pull ghcr.io/mc2-center/pubmed-crawler
 ```
 
 ### Output
@@ -170,7 +152,9 @@ is the current date.
 
 Fill out the manifest(s) as needed, using the pre-defined Controlled Vocabulary
 listed in **standard_terms** for applicable columns. Once complete, validate
-and upload the manifest(s) with the [Data Curator App] (coming soon!).
+and upload the manifest(s) with the [Data Curator App (DCA)].
+
+→ [Read more about annotating and using the DCA].
 
 <!-- Links -->
 
@@ -179,6 +163,7 @@ and upload the manifest(s) with the [Data Curator App] (coming soon!).
 [ncbi account info]: https://support.nlm.nih.gov/knowledgebase/article/KA-05317/en-us
 [conda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html
 [pyenv]: https://github.com/pyenv/pyenv#getting-pyenv
-[data curator app]: https://sagebio.shinyapps.io/csbc_data_curator/
+[data curator app (dca)]: https://dca.app.sagebionetworks.org/
 [syn21918972]: https://www.synapse.org/#!Synapse:syn21918972/tables/
 [`syn21868591`]: https://www.synapse.org/#!Synapse:syn21868591/tables/
+[Read more about annotating and using the DCA]: https://sagebionetworks.jira.com/wiki/spaces/CCKPD/pages/3049095269/Community+Curation
