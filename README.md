@@ -45,7 +45,7 @@ Run the Docker container, replacing `/path/to/.env` with your path to `.env`.
 docker run --rm -ti \
   --env-file /path/to/.env \
   --volume $PWD/output:/tmp/output:rw \
-  docker.synapse.org/syn21498902/pubmed_crawler
+  docker pull ghcr.io/mc2-center/pubmed-crawler
 ```
 
 If this is your first time running the command, Docker will first pull the image
