@@ -205,6 +205,10 @@ def pull_info(pmids, curr_grants, email):
                 # GENERAL INFO
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
                 doi = result.get('doi')
+
+                # Append the proxy if a DOI is found.
+                if doi:
+                    doi = "https://doi.org/" + doi
                 journal_info = result.get('journalInfo').get('journal')
                 journal = journal_info.get(
                     'isoabbreviation', journal_info.get('medlineAbbreviation'))
