@@ -306,10 +306,7 @@ def find_publications(syn, grant_id, table_id, email):
     # not already listed in the provided table.
     if table_id:
         table_name = syn.get(table_id).name
-        if table_id == "syn52752398":
-            id_col = "Pubmed Id"
-        else:
-            id_col = "pubMedId"
+        id_col = "Pubmed Id" if table_id == "syn52752398" else "pubMedId"
         print(f"Comparing with table: {table_name}...")
         current_pmids = (
             syn.tableQuery(f'SELECT "{id_col}" FROM {table_id}')
