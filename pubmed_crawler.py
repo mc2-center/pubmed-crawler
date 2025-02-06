@@ -313,7 +313,7 @@ def find_publications(syn, grant_id, table_id, email):
         print(f"Comparing with table: {table_name}...")
         current_pmids = (
             syn.tableQuery(f'SELECT "{id_col}" FROM {table_id}')
-            .asDataFrame()[f'{id_col}']
+            .asDataFrame()[id_col]
             .astype(str)
             .tolist()
         )
