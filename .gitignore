@@ -3,6 +3,7 @@ output/
 
 # Secrets
 .env
+pc_creds
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
