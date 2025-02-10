@@ -300,15 +300,17 @@ def find_publications(syn, grant_id, table_id, email):
     """
     grants = get_grants(syn, grant_id)
     pmids = get_pmids(grants)
+    
 
     # If user provided a table ID, only scrape info from publications
     # not already listed in the provided table.
     if table_id:
         table_name = syn.get(table_id).name
+        id_col = "Pubmed Id" if table_id == "syn52752398" else "pubMedId"
         print(f"Comparing with table: {table_name}...")
         current_pmids = (
-            syn.tableQuery(f"SELECT pubMedId FROM {table_id}")
-            .asDataFrame()['pubMedId']
+            syn.tableQuery(f'SELECT "{id_col}" FROM {table_id}')
+            .asDataFrame()[id_col]
             .astype(str)
             .tolist()
         )
