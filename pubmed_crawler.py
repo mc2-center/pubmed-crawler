@@ -112,9 +112,13 @@ def get_pmids(grants):
 
 def parse_grant(pattern, grant):
     """Parse for grant number based on given pattern."""
-    grant_info = re.search(pattern, grant)
-    grant_number = grant_info.group(1).upper()
-    return grant_number.replace(" ", "").replace("/", "").replace("-", "")
+    grant_info = re.findall(pattern, grant)
+    grant_numbers = [
+        grant_number.upper().replace(" ", "").replace("/", "").replace("-", "")
+        for grant_number
+        in grant_info
+    ]
+    return grant_numbers
 
 
 def get_related_info(pmid):
