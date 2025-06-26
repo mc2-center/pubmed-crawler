@@ -247,9 +247,9 @@ def pull_info(pmids, curr_grants, email):
                 pattern = re.compile(r"(CA[ /-]?\d{6})", re.I)
                 related_grants = {
                     grant_number 
+                    for grant in grants
                     for grant_number 
                     in parse_grant(pattern, grant.get('grantId'))
-                    for grant in grants
                     if grant.get('grantId')
                     and re.search(pattern, grant.get('grantId'))
                     and grant_number in grants_list
