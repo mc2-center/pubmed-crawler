@@ -247,16 +247,14 @@ def pull_info(pmids, curr_grants, email):
                     assay = tissue = tumor_type = "Pending Annotation"
 
                 # GRANTS
-                grants = result.get('grantsList', {}).get('grant', [])
+                grants = result.get("grantsList", {}).get("grant", [])
                 pattern = re.compile(r"(CA[ /-]?\d{6})", re.I)
                 related_grants = {
-                    grant_number 
+                    grant_number
                     for grant in grants
-                    for grant_number 
-                    in parse_grant(pattern, grant.get('grantId'))
-                    if grant.get('grantId')
-                    and re.search(pattern, grant.get('grantId'))
-                    and grant_number in grants_list
+                    if grant.get("grantId")
+                    for grant_number in parse_grant(pattern, grant.get("grantId"))
+                    if grant_number in grants_list
                 }
 
                 if related_grants:
