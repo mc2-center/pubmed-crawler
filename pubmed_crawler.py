@@ -5,22 +5,22 @@ maintainer: milen.nikolov
 maintainer: verena.chung
 """
 
-import os
-import re
 import argparse
 import getpass
+import json
+import os
+import re
 import ssl
 from datetime import datetime
-import json
-import requests
 
+import pandas as pd
+import requests
+import synapseclient
 from Bio import Entrez
 from bs4 import BeautifulSoup
-import synapseclient
-import pandas as pd
 from openpyxl import Workbook
-from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Font
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 
 def login():
@@ -30,11 +30,14 @@ def login():
         syn: Synapse object
     """
     try:
-        syn = synapseclient.login(authToken=os.getenv('SYNAPSE_AUTH_TOKEN'),
-                                  silent=True)
+        syn = synapseclient.login(
+            authToken=os.getenv("SYNAPSE_AUTH_TOKEN"), silent=True
+        )
     except synapseclient.core.exceptions.SynapseNoCredentialsError:
-        print("Credentials not found; please manually provide your",
-              "Synapse username and password.")
+        print(
+            "Credentials not found; please manually provide your",
+            "Synapse username and password.",
+        )
         username = input("Synapse username: ")
         password = getpass.getpass("Synapse password: ")
         syn = synapseclient.login(username, password, silent=True)
@@ -47,19 +50,35 @@ def get_args():
         description=(
             "Get PubMed information from a list of grant numbers and put "
             "the results into a CSV file.  Table ID can be provided if "
-            "interested in only scrapping for new publications."))
-    parser.add_argument("-g", "--grant_id",
-                        type=str, default="syn21918972",
-                        help=("Synapse table/view ID containing grant numbers "
-                              "in 'grantNumber' column. (Default: syn21918972)"))
-    parser.add_argument("-t", "--table_id",
-                        type=str, required=True,
-                        help="Current Synapse table holding PubMed info.")
-    parser.add_argument("-o", "--output_name",
-                        type=str, default=datetime.today().strftime('%Y-%m-%d') +
-                        "_publications-manifest",
-                        help=("Filename for output filename. (Default: "
-                              "publications_<current-date>)"))
+            "interested in only scrapping for new publications."
+        )
+    )
+    parser.add_argument(
+        "-g",
+        "--grant_id",
+        type=str,
+        default="syn21918972",
+        help=(
+            "Synapse table/view ID containing grant numbers "
+            "in 'grantNumber' column. (Default: syn21918972)"
+        ),
+    )
+    parser.add_argument(
+        "-t",
+        "--table_id",
+        type=str,
+        required=True,
+        help="Current Synapse table holding PubMed info.",
+    )
+    parser.add_argument(
+        "-o",
+        "--output_name",
+        type=str,
+        default=datetime.today().strftime("%Y-%m-%d") + "_publications-manifest",
+        help=(
+            "Filename for output filename. (Default: " "publications_<current-date>)"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -73,11 +92,9 @@ def get_grants(syn, table_id):
         set: valid grant numbers, e.g. non-empty strings
     """
     print("Querying for grant numbers... ")
-    grants = (
-        syn.tableQuery(
-            f"SELECT grantNumber, consortium, theme FROM {table_id}")
-        .asDataFrame()
-    )
+    grants = syn.tableQuery(
+        f"SELECT grantNumber, consortium, theme FROM {table_id}"
+    ).asDataFrame()
     print(f"  Number of grants: {len(grants)}\n")
     return grants
 
@@ -89,14 +106,12 @@ def get_pmids(grants):
         set: PubMed IDs
     """
     print("Getting PMIDs from NCBI... ")
-    grant_numbers = grants['grantNumber'].tolist()
+    grant_numbers = grants["grantNumber"].tolist()
     query = "[Grant number] OR ".join(grant_numbers) + "[Grant number]"
-    handle = Entrez.esearch(db="pubmed",
-                            term=query,
-                            retmax=100_000,
-                            retmode="xml",
-                            sort="relevance")
-    pmids = set(Entrez.read(handle).get('IdList'))
+    handle = Entrez.esearch(
+        db="pubmed", term=query, retmax=100_000, retmode="xml", sort="relevance"
+    )
+    pmids = set(Entrez.read(handle).get("IdList"))
     handle.close()
 
     # Entrez docs suggests to use HTTP POST when text query is >700
@@ -115,8 +130,7 @@ def parse_grant(pattern, grant):
     grant_info = re.findall(pattern, grant)
     grant_numbers = [
         grant_number.upper().replace(" ", "").replace("/", "").replace("-", "")
-        for grant_number
-        in grant_info
+        for grant_number in grant_info
     ]
     return grant_numbers
 
@@ -127,17 +141,14 @@ def get_related_info(pmid):
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
     """
-    handle = Entrez.elink(dbfrom="pubmed",
-                          db="gds,sra,gap",
-                          id=pmid,
-                          retmode="xml")
-    results = Entrez.read(handle)[0].get('LinkSetDb')
+    handle = Entrez.elink(dbfrom="pubmed", db="gds,sra,gap", id=pmid, retmode="xml")
+    results = Entrez.read(handle)[0].get("LinkSetDb")
     handle.close()
 
     related_info = {}
     for result in results:
-        db = re.search(r"pubmed_(.*)", result.get('LinkName')).group(1)
-        ids = [link.get('Id') for link in result.get('Link')]
+        db = re.search(r"pubmed_(.*)", result.get("LinkName")).group(1)
+        ids = [link.get("Id") for link in result.get("Link")]
         handle = Entrez.esummary(db=db, id=",".join(ids))
         soup = BeautifulSoup(handle, features="xml")
         handle.close()
@@ -149,7 +160,7 @@ def parse_geo(info):
     """Parse and return GSE IDs."""
     gse_ids = []
     if info:
-        tags = info.find_all('Item', attrs={'Name': "GSE"})
+        tags = info.find_all("Item", attrs={"Name": "GSE"})
         gse_ids = ["GSE" + tag.text for tag in tags]
     return gse_ids
 
@@ -158,7 +169,7 @@ def parse_sra(info):
     """Parse and return SRX/SRP IDs."""
     srx_ids = srp_ids = []
     if info:
-        tags = info.find_all('Item', attrs={'Name': "ExpXml"})
+        tags = info.find_all("Item", attrs={"Name": "ExpXml"})
         srx_ids = [
             re.search(r'Experiment acc="(.*?)"', tag.text).group(1)
             for tag in tags
@@ -176,7 +187,7 @@ def parse_dbgap(info):
     """Parse and return study IDs."""
     gap_ids = []
     if info:
-        tags = info.find_all('Item', attrs={'Name': "d_study_id"})
+        tags = info.find_all("Item", attrs={"Name": "d_study_id"})
         gap_ids = [tag.text for tag in tags]
     return gap_ids
 
@@ -190,46 +201,50 @@ def pull_info(pmids, curr_grants, email):
     pmc_url = "https://www.ebi.ac.uk/europepmc/webservices/rest/searchPOST"
     query = " OR ".join(pmids)
     data = {
-        'query': query,
-        'resultType': "core",
-        'format': "json",
-        'pageSize': 1_000
+        "query": query,
+        "resultType": "core",
+        "format": "json",
+        "pageSize": 1_000,
     }
     response = json.loads(requests.post(url=pmc_url, data=data).content)
-    results = response.get('resultList').get('result')
+    results = response.get("resultList").get("result")
 
     grants_list = curr_grants.grantNumber.tolist()
     table = []
     with requests.Session() as session:
         for result in results:
-            pmid = result.get('pmid')
-            pub_type = result.get('pubTypeList').get('pubType')
+            pmid = result.get("pmid")
+            pub_type = result.get("pubTypeList").get("pubType")
             if pmid in pmids and "Published Erratum" not in pub_type:
 
                 # GENERAL INFO
                 url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
-                doi = result.get('doi')
+                doi = result.get("doi")
 
                 # Append the proxy if a DOI is found.
                 if doi:
                     doi = "https://doi.org/" + doi
-                journal_info = result.get('journalInfo').get('journal')
+                journal_info = result.get("journalInfo").get("journal")
                 journal = journal_info.get(
-                    'isoabbreviation', journal_info.get('medlineAbbreviation'))
-                year = result.get('pubYear')
-                title = result.get('title').rstrip(".")
+                    "isoabbreviation", journal_info.get("medlineAbbreviation")
+                )
+                year = result.get("pubYear")
+                title = result.get("title").rstrip(".")
                 try:
                     authors = [
                         f"{author.get('firstName')} {author.get('lastName')}"
-                        for author
-                        in result.get('authorList').get('author')
+                        for author in result.get("authorList").get("author")
                     ]
                 except AttributeError:
                     # There is not an author list with this publication.
                     authors = []
-                abstract = result.get('abstractText', "No abstract available.").replace(
-                    "<h4>", " ").replace("</h4>", ": ").lstrip()
-                keywords = result.get('keywordList', {}).get('keyword', "")
+                abstract = (
+                    result.get("abstractText", "No abstract available.")
+                    .replace("<h4>", " ")
+                    .replace("</h4>", ": ")
+                    .lstrip()
+                )
+                keywords = result.get("keywordList", {}).get("keyword", "")
 
                 # ACCESSIBILITY
                 unpaywall_url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
@@ -258,41 +273,42 @@ def pull_info(pmids, curr_grants, email):
                 }
 
                 if related_grants:
-                    center = curr_grants.loc[curr_grants['grantNumber'].isin(
-                        related_grants)]
-                    consortium = ", ".join(set(center['consortium'].sum()))
-                    themes = ", ".join(set(center['theme'].sum()))
+                    center = curr_grants.loc[
+                        curr_grants["grantNumber"].isin(related_grants)
+                    ]
+                    consortium = ", ".join(set(center["consortium"].sum()))
+                    themes = ", ".join(set(center["theme"].sum()))
                 else:
                     consortium = themes = ""
 
                 # RELATED INFORMATION
                 # Contains: GEO, SRA, dbGaP
                 related_info = get_related_info(pmid)
-                gse_ids = parse_geo(related_info.get('gds'))
-                srx, srp = parse_sra(related_info.get('sra'))
-                dbgaps = parse_dbgap(related_info.get('gap'))
+                gse_ids = parse_geo(related_info.get("gds"))
+                srx, srp = parse_sra(related_info.get("sra"))
+                dbgaps = parse_dbgap(related_info.get("gap"))
                 dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
 
                 # Conslidate all info into a single df, then append to list.
                 publication_info = {
-                    'Component': ["PublicationView"],
-                    'Publication Grant Number': [", ".join(related_grants)],
-                    'Publication Consortium Name': [consortium],
-                    'Publication Theme Name': [themes],
-                    'Publication Doi': [doi],
-                    'Publication Journal': [journal],
-                    'Pubmed Id': [int(pmid)],
-                    'Pubmed Url': [url],
-                    'Publication Title': [title],
-                    'Publication Year': [int(year)],
-                    'Publication Keywords': [", ".join(keywords)],
-                    'Publication Authors': [", ".join(authors)],
-                    'Publication Abstract': [abstract],
-                    'Publication Assay': [assay],
-                    'Publication Tumor Type': [tumor_type],
-                    'Publication Tissue': [tissue],
-                    'Publication Dataset Alias': [", ".join(dataset_ids)],
-                    'Publication Accessibility': [accessbility]
+                    "Component": ["PublicationView"],
+                    "Publication Grant Number": [", ".join(related_grants)],
+                    "Publication Consortium Name": [consortium],
+                    "Publication Theme Name": [themes],
+                    "Publication Doi": [doi],
+                    "Publication Journal": [journal],
+                    "Pubmed Id": [int(pmid)],
+                    "Pubmed Url": [url],
+                    "Publication Title": [title],
+                    "Publication Year": [int(year)],
+                    "Publication Keywords": [", ".join(keywords)],
+                    "Publication Authors": [", ".join(authors)],
+                    "Publication Abstract": [abstract],
+                    "Publication Assay": [assay],
+                    "Publication Tumor Type": [tumor_type],
+                    "Publication Tissue": [tissue],
+                    "Publication Dataset Alias": [", ".join(dataset_ids)],
+                    "Publication Accessibility": [accessbility],
                 }
                 row = pd.DataFrame(publication_info)
                 table.append(row)
@@ -307,7 +323,6 @@ def find_publications(syn, grant_id, table_id, email):
     """
     grants = get_grants(syn, grant_id)
     pmids = get_pmids(grants)
-    
 
     # If user provided a table ID, only scrape info from publications
     # not already listed in the provided table.
@@ -346,8 +361,10 @@ def generate_manifest(table, output):
     annots = ["assay", "tissue", "tumorType"]
     cv_file = "https://raw.githubusercontent.com/mc2-center/data-models/main/all_valid_values.csv"
     cv_terms = pd.read_csv(cv_file)
-    cv_terms = cv_terms.loc[cv_terms['category'].str.contains("publication") |
-                            cv_terms['category'].isin(annots)]
+    cv_terms = cv_terms.loc[
+        cv_terms["category"].str.contains("publication")
+        | cv_terms["category"].isin(annots)
+    ]
     ws2 = wb.create_sheet("standard_terms")
     for row in dataframe_to_rows(cv_terms, index=False, header=True):
         ws2.append(row)
@@ -356,8 +373,8 @@ def generate_manifest(table, output):
     ft = Font(bold=True)
     ws2["A1"].font = ft
     ws2["B1"].font = ft
-    ws2.column_dimensions['A'].width = 15
-    ws2.column_dimensions['B'].width = 65
+    ws2.column_dimensions["A"].width = 15
+    ws2.column_dimensions["B"].width = 65
     ws2.protection.sheet = True
 
     wb.save(os.path.join("output", output + ".xlsx"))
@@ -370,12 +387,13 @@ def main():
 
     # In order to make >3 Entrez requests/sec, 'email' and 'api_key'
     # params need to be set.
-    email = os.getenv('ENTREZ_EMAIL')
+    email = os.getenv("ENTREZ_EMAIL")
     Entrez.email = email
-    Entrez.api_key = os.getenv('ENTREZ_API_KEY')
+    Entrez.api_key = os.getenv("ENTREZ_API_KEY")
 
-    if not os.environ.get('PYTHONHTTPSVERIFY', '') \
-            and getattr(ssl, '_create_unverified_context', None):
+    if not os.environ.get("PYTHONHTTPSVERIFY", "") and getattr(
+        ssl, "_create_unverified_context", None
+    ):
         ssl._create_default_https_context = ssl._create_unverified_context
 
     table = find_publications(syn, args.grant_id, args.table_id.strip(), email)
@@ -386,8 +404,8 @@ def main():
 
         # Generate manifest with open-access publications listed first.
         generate_manifest(
-            table.sort_values(by='Publication Accessibility'),
-            args.output_name)
+            table.sort_values(by="Publication Accessibility"), args.output_name
+        )
 
     print("-- DONE --")
 
