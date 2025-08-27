@@ -248,8 +248,9 @@ def pull_info(pmids, curr_grants, email):
 
                 # ACCESSIBILITY
                 unpaywall_url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
-                check_oa_status = session.get(unpaywall_url)
-                if check_oa_status.status_code == 200:
+                try:
+                    check_oa_status = session.get(unpaywall_url)
+                    check_oa_status.raise_for_status()
                     is_open = json.loads(check_oa_status.content).get("is_oa")
                     if is_open:
                         accessbility = "Open Access"
@@ -257,7 +258,7 @@ def pull_info(pmids, curr_grants, email):
                     else:
                         accessbility = "Restricted Access"
                         assay = tissue = tumor_type = "Pending Annotation"
-                else:
+                except (requests.exceptions.HTTPError, json.JSONDecodeError):
                     accessbility = "Unknown"
                     assay = tissue = tumor_type = "Pending Annotation"
 
