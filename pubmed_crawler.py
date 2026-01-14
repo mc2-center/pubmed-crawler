@@ -24,6 +24,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils.dataframe import dataframe_to_rows
 from synapseclient.models import Table
+from urllib.error import HTTPError
 
 
 def login():
@@ -136,13 +137,15 @@ def parse_grant(pattern, grant):
     return grant_numbers
 
 
-def get_related_info(pmid):
+def get_related_info(pmid, max_retries=3):
     """Get related information associated with publication.
+
+    Network issues may be encountered when making Entrez requests.
+    Retry up to `max_retries` times before skipping.
 
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
     """
-    max_retries = 3
     for i in range(max_retries):
         try:
             handle = Entrez.elink(
@@ -151,7 +154,7 @@ def get_related_info(pmid):
             results = Entrez.read(handle)[0].get("LinkSetDb")
             handle.close()
             break
-        except (RuntimeError, HTTPException):
+        except (RuntimeError, HTTPException, HTTPError):
             if i < max_retries - 1:
                 print(
                     f"  Network issue getting related info for {pmid}, trying again..."
