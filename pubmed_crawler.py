@@ -11,6 +11,7 @@ import json
 import os
 import re
 import ssl
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -18,9 +19,12 @@ import requests
 import synapseclient
 from Bio import Entrez
 from bs4 import BeautifulSoup
+from http.client import HTTPException
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils.dataframe import dataframe_to_rows
+from synapseclient.models import Table
+from urllib.error import HTTPError
 
 
 def login():
@@ -92,9 +96,7 @@ def get_grants(syn, table_id):
         set: valid grant numbers, e.g. non-empty strings
     """
     print("Querying for grant numbers... ")
-    grants = syn.tableQuery(
-        f"SELECT grantNumber, consortium, theme FROM {table_id}"
-    ).asDataFrame()
+    grants = Table.query(f"SELECT grantNumber, consortium, theme FROM {table_id}")
     print(f"  Number of grants: {len(grants)}\n")
     return grants
 
@@ -135,15 +137,32 @@ def parse_grant(pattern, grant):
     return grant_numbers
 
 
-def get_related_info(pmid):
+def get_related_info(pmid, max_retries=3):
     """Get related information associated with publication.
+
+    Network issues may be encountered when making Entrez requests.
+    Retry up to `max_retries` times before skipping.
 
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
     """
-    handle = Entrez.elink(dbfrom="pubmed", db="gds,sra,gap", id=pmid, retmode="xml")
-    results = Entrez.read(handle)[0].get("LinkSetDb")
-    handle.close()
+    for i in range(max_retries):
+        try:
+            handle = Entrez.elink(
+                dbfrom="pubmed", db="gds,sra,gap", id=pmid, retmode="xml"
+            )
+            results = Entrez.read(handle)[0].get("LinkSetDb")
+            handle.close()
+            break
+        except (RuntimeError, HTTPException, HTTPError):
+            if i < max_retries - 1:
+                print(
+                    f"  Network issue getting related info for {pmid}, trying again..."
+                )
+                time.sleep(1)
+            else:
+                print(f"  ⚠️ Failed to get related info for {pmid}. Skipping...")
+                return {}
 
     related_info = {}
     for result in results:
@@ -332,8 +351,7 @@ def find_publications(syn, grant_id, table_id, email):
         id_col = "Pubmed Id" if table_id == "syn52752398" else "pubMedId"
         print(f"Comparing with table: {table_name}...")
         current_pmids = (
-            syn.tableQuery(f'SELECT "{id_col}" FROM {table_id}')
-            .asDataFrame()[id_col]
+            Table.query(f'SELECT "{id_col}" FROM {table_id}')[id_col]
             .astype(str)
             .tolist()
         )
