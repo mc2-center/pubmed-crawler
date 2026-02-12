@@ -148,14 +148,6 @@ minutes. Once complete, a manifest will be found in a folder called `output`,
 with a name like `publications_manifest_<yyyy-mm-dd>.xlsx`, where `<yyyy-mm-dd>`
 is the current date.
 
-## :pencil2: Next Steps
-
-Fill out the manifest(s) as needed, using the pre-defined Controlled Vocabulary
-listed in **standard_terms** for applicable columns. Once complete, validate
-and upload the manifest(s) with the [Data Curator App (DCA)].
-
-→ [Read more about annotating and using the DCA].
-
 <!-- Links -->
 
 [synapse account]: https://www.synapse.org/#!RegisterAccount:0
@@ -163,7 +155,5 @@ and upload the manifest(s) with the [Data Curator App (DCA)].
 [ncbi account info]: https://support.nlm.nih.gov/knowledgebase/article/KA-05317/en-us
 [conda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html
 [pyenv]: https://github.com/pyenv/pyenv#getting-pyenv
-[data curator app (dca)]: https://dca.app.sagebionetworks.org/
 [syn21918972]: https://www.synapse.org/#!Synapse:syn21918972/tables/
 [`syn21868591`]: https://www.synapse.org/#!Synapse:syn21868591/tables/
-[Read more about annotating and using the DCA]: https://sagebionetworks.jira.com/wiki/spaces/CCKPD/pages/3049095269/Community+Curation
