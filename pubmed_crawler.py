@@ -407,6 +407,14 @@ def main():
     # In order to make >3 Entrez requests/sec, 'email' and 'api_key'
     # params need to be set.
     email = os.getenv("ENTREZ_EMAIL")
+    if not email:
+        print(
+            "⚠️ WARNING: No email address found in the environment.\n"
+            "Requests to the Entrez and Unpaywall APIs may be rate-limited or "
+            "return incomplete data. For optimal performance, please set the "
+            "'ENTREZ_EMAIL' environment variable. See README for more details."
+        )
+
     Entrez.email = email
     Entrez.api_key = os.getenv("ENTREZ_API_KEY")
 
