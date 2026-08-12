@@ -146,23 +146,12 @@ def get_related_info(pmid, max_retries=3):
     Returns:
         dict: XML results for GEO, SRA, and dbGaP
     """
-    for i in range(max_retries):
-        try:
-            handle = Entrez.elink(
-                dbfrom="pubmed", db="gds,sra,gap", id=pmid, retmode="xml"
-            )
-            results = Entrez.read(handle)[0].get("LinkSetDb")
-            handle.close()
-            break
-        except (RuntimeError, HTTPException, HTTPError):
-            if i < max_retries - 1:
-                print(
-                    f"  Network issue getting related info for {pmid}, trying again..."
+                handle = Entrez.elink(
+                    dbfrom="pubmed",
+                    db="gds,sra,bioproject",
+                    id=",".join(chunk),
+                    retmode="xml",
                 )
-                time.sleep(1)
-            else:
-                print(f"  ⚠️ Failed to get related info for {pmid}. Skipping...")
-                return {}
 
     related_info = {}
     for result in results:
