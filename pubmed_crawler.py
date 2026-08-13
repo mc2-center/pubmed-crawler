@@ -10,7 +10,6 @@ import getpass
 import json
 import os
 import re
-import ssl
 import time
 from datetime import datetime
 
@@ -406,11 +405,6 @@ def main():
 
     Entrez.email = email
     Entrez.api_key = os.getenv("ENTREZ_API_KEY")
-
-    if not os.environ.get("PYTHONHTTPSVERIFY", "") and getattr(
-        ssl, "_create_unverified_context", None
-    ):
-        ssl._create_default_https_context = ssl._create_unverified_context
 
     table = find_publications(syn, args.grant_id, args.table_id.strip(), email)
     if table.empty:
