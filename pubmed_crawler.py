@@ -22,7 +22,7 @@ from http.client import HTTPException
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils.dataframe import dataframe_to_rows
-from synapseclient.models import Table
+from synapseclient.models import Table, query
 from urllib.error import HTTPError
 
 
@@ -95,7 +95,7 @@ def get_grants(syn, table_id):
         set: valid grant numbers, e.g. non-empty strings
     """
     print("Querying for grant numbers... ")
-    grants = Table.query(f"SELECT grantNumber, consortium, theme FROM {table_id}")
+    grants = query(f"SELECT grantNumber, consortium, theme FROM {table_id}")
     print(f"  Number of grants: {len(grants)}\n")
     return grants
 
@@ -335,11 +335,11 @@ def find_publications(syn, grant_id, table_id, email):
     # If user provided a table ID, only scrape info from publications
     # not already listed in the provided table.
     if table_id:
-        table_name = syn.get(table_id).name
+        table_name = Table(id=table_id).get().name
         id_col = "Pubmed Id" if table_id == "syn52752398" else "pubMedId"
         print(f"Comparing with table: {table_name}...")
         current_pmids = (
-            Table.query(f'SELECT "{id_col}" FROM {table_id}')[id_col]
+            query(f'SELECT "{id_col}" FROM {table_id}')[id_col]
             .astype(str)
             .tolist()
         )
