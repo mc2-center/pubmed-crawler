@@ -1,5 +1,9 @@
 """PubMed 'Crawler' of MC2 Center Publications.
 
+Discovers publications via PubMed using MC2-affiliated grant numbers,
+then fetches metadata in bulk from Europe PMC (faster than using NCBI
+E-utils). Open-access status is determined via the Unpaywall API.
+
 author: nasim.sanati
 maintainer: milen.nikolov
 maintainer: verena.chung
@@ -244,6 +248,13 @@ def parse_dbgap(info):
 
 def pull_info(pmids, curr_grants, email):
     """Create dataframe of publications and their pulled data.
+
+    Publication data is pulled in bulk using Europe PMC API, since it's faster
+    than Entrez. Open-access status is pulled from the Unpaywall API.
+
+    Assumptions:
+        Number of new publications per run is <1,000, as Europe PMC API has 
+        limit of 1,000 results per request.
 
     Returns:
         df: publications data
