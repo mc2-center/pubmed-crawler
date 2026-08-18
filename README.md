@@ -15,7 +15,7 @@
   <img alt="GitHub" src="https://img.shields.io/github/license/mc2-center/pubmed-crawler?style=flat-square&color=orange">
 <p>
 
-Manifests for the CCKP can be generated using Docker or Python (3.9+).
+Manifests for the CCKP can be generated using Docker or Python (3.12+).
 Regardless of approach, a Synapse account is required, as well as an
 Entrez account (strongly recommended). Failing to provide Entrez credentials
 will most likely result in timeout errors from NCBI.
@@ -79,13 +79,10 @@ where `<yyyy-mm-dd>` is the current date.
 2. In the `pubmed-crawler` directory, copy `.envTemplate` as `.env`, then update
    its contents with your Synapse [Personal Access Token] (PAT) and [NCBI account info].
 
-3. Install the dependencies for the Python scripts, ideally in a virtual
-   environment, e.g. [conda] or [pyenv]. For example:
+3. Install [uv] if not already available, then install dependencies:
 
     ```
-    conda create -n pubmed-crawler python=3.9
-    conda activate pubmed-crawler
-    pip install -r requirements.txt
+    uv sync
     ```
 
 4. Set environment variables from `.env` so that the scripts will have access
@@ -97,10 +94,10 @@ where `<yyyy-mm-dd>` is the current date.
 
 ### Usage
 
-While in the virtual environment, run the command:
+Run the command:
 
 ```
-python pubmed_crawler.py -t syn21868591
+uv run pubmed_crawler.py -t syn21868591
 ```
 
 where:
@@ -155,5 +152,6 @@ is the current date.
 [ncbi account info]: https://support.nlm.nih.gov/knowledgebase/article/KA-05317/en-us
 [conda]: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html
 [pyenv]: https://github.com/pyenv/pyenv#getting-pyenv
+[uv]: https://docs.astral.sh/uv/getting-started/installation/
 [syn21918972]: https://www.synapse.org/#!Synapse:syn21918972/tables/
 [`syn21868591`]: https://www.synapse.org/#!Synapse:syn21868591/tables/

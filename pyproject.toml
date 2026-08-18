@@ -1,0 +1,15 @@
+[project]
+name = "pubmed-crawler"
+version = "6.2.4"
+description = "Publications manifest generator for the Cancer Complexity Knowledge Portal"
+requires-python = ">=3.12"
+dependencies = [
+    "synapseclient>=4.9.0",
+    "pandas>=2.3.3",
+    "biopython>=1.86",
+    "beautifulsoup4>=4.14.3",
+    "lxml>=6.0.2",
+    "openpyxl>=3.1.5",
+    "requests>=2.32.0",
+    "urllib3>=2.7.0",
+]

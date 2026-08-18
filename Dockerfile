@@ -1,10 +1,12 @@
 FROM python:3.12-slim
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /tmp
 
-COPY requirements.txt .
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+COPY pyproject.toml .
+RUN uv sync --no-dev --no-install-project
+
 COPY . .
 
-ENTRYPOINT [ "python", "pubmed_crawler.py", "-t syn21868591" ]
+ENTRYPOINT ["uv", "run", "pubmed_crawler.py", "-t", "syn21868591"]
