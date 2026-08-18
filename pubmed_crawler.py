@@ -1,5 +1,9 @@
 """PubMed 'Crawler' of MC2 Center Publications.
 
+Discovers publications via PubMed using MC2-affiliated grant numbers,
+then fetches metadata in bulk from Europe PMC (faster than using NCBI
+E-utils). Open-access status is determined via the Unpaywall API.
+
 author: nasim.sanati
 maintainer: milen.nikolov
 maintainer: verena.chung
@@ -10,8 +14,8 @@ import getpass
 import json
 import os
 import re
-import ssl
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 import pandas as pd
@@ -23,7 +27,7 @@ from http.client import HTTPException
 from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils.dataframe import dataframe_to_rows
-from synapseclient.models import Table
+from synapseclient.models import Table, query
 from urllib.error import HTTPError
 
 
@@ -96,7 +100,7 @@ def get_grants(syn, table_id):
         set: valid grant numbers, e.g. non-empty strings
     """
     print("Querying for grant numbers... ")
-    grants = Table.query(f"SELECT grantNumber, consortium, theme FROM {table_id}")
+    grants = query(f"SELECT grantNumber, consortium, theme FROM {table_id}")
     print(f"  Number of grants: {len(grants)}\n")
     return grants
 
@@ -137,42 +141,73 @@ def parse_grant(pattern, grant):
     return grant_numbers
 
 
-def get_related_info(pmid, max_retries=3):
-    """Get related information associated with publication.
+def get_related_info(pmids, batch_size=200, max_retries=3):
+    """Get related information for a collection of PMIDs in batched elink calls.
 
     Network issues may be encountered when making Entrez requests.
     Retry up to `max_retries` times before skipping.
 
     Returns:
-        dict: XML results for GEO, SRA, and dbGaP
+        dict: mapping of pmid -> XML for GEO, SRA, and dbGaP
     """
-    for i in range(max_retries):
-        try:
-            handle = Entrez.elink(
-                dbfrom="pubmed", db="gds,sra,gap", id=pmid, retmode="xml"
-            )
-            results = Entrez.read(handle)[0].get("LinkSetDb")
-            handle.close()
-            break
-        except (RuntimeError, HTTPException, HTTPError):
-            if i < max_retries - 1:
-                print(
-                    f"  Network issue getting related info for {pmid}, trying again..."
+    result_map = {}
+    pmid_list = list(pmids)
+    for start in range(0, len(pmid_list), batch_size):
+        chunk = pmid_list[start : start + batch_size]
+        linksets = []
+        for attempt in range(max_retries):
+            try:
+                handle = Entrez.elink(
+                    dbfrom="pubmed",
+                    db="gds,sra,bioproject",
+                    id=",".join(chunk),
+                    retmode="xml",
                 )
-                time.sleep(1)
-            else:
-                print(f"  ⚠️ Failed to get related info for {pmid}. Skipping...")
-                return {}
+                linksets = Entrez.read(handle)
+                handle.close()
+                break
+            except (RuntimeError, HTTPException, HTTPError):
+                if attempt < max_retries - 1:
+                    print(
+                        f"  Network issue getting related info for PMID {chunk[0]}..{chunk[-1]}, trying again..."
+                    )
+                    time.sleep(1)
+                else:
+                    print(f"  ⚠️ Failed to get related info for PMID {chunk[0]}..{chunk[-1]}. Skipping...")
+        for linkset in linksets:
+            pmid = str(linkset.get("IdList", [None])[0])
+            if pmid is None:
+                continue
+            related_info = {}
+            for link_db in linkset.get("LinkSetDb", []):
+                db = re.search(r"pubmed_(.*)", link_db.get("LinkName")).group(1)
+                ids = [link.get("Id") for link in link_db.get("Link")]
+                handle = Entrez.esummary(db=db, id=",".join(ids))
+                soup = BeautifulSoup(handle, features="xml")
+                handle.close()
+                related_info[db] = soup
+            result_map[pmid] = related_info
+    return result_map
 
-    related_info = {}
-    for result in results:
-        db = re.search(r"pubmed_(.*)", result.get("LinkName")).group(1)
-        ids = [link.get("Id") for link in result.get("Link")]
-        handle = Entrez.esummary(db=db, id=",".join(ids))
-        soup = BeautifulSoup(handle, features="xml")
-        handle.close()
-        related_info[db] = soup
-    return related_info
+
+def _fetch_oa_status(raw_doi, email):
+    """Fetch open-access status from Unpaywall for a single DOI.
+
+    Returns:
+        tuple: (raw_doi, accessibility)
+    """
+    if not raw_doi:
+        return raw_doi, "Unknown"
+    try:
+        response = requests.get(
+            f"https://api.unpaywall.org/v2/{raw_doi}?email={email}", timeout=10
+        )
+        response.raise_for_status()
+        if response.json().get("is_oa"):
+            return raw_doi, "Open Access"
+        return raw_doi, "Restricted Access"
+    except (requests.exceptions.HTTPError, requests.exceptions.RequestException, json.JSONDecodeError):
+        return raw_doi, "Unknown"
 
 
 def parse_geo(info):
@@ -214,6 +249,13 @@ def parse_dbgap(info):
 def pull_info(pmids, curr_grants, email):
     """Create dataframe of publications and their pulled data.
 
+    Publication data is pulled in bulk using Europe PMC API, since it's faster
+    than Entrez. Open-access status is pulled from the Unpaywall API.
+
+    Assumptions:
+        Number of new publications per run is <1,000, as Europe PMC API has 
+        limit of 1,000 results per request.
+
     Returns:
         df: publications data
     """
@@ -229,109 +271,110 @@ def pull_info(pmids, curr_grants, email):
     results = response.get("resultList").get("result")
 
     grants_list = curr_grants.grantNumber.tolist()
+
+    # Filter down to only publications that are in the list of PMIDs and not errata.
+    filtered_results = [
+        r for r in results
+        if r.get("pmid") in pmids
+        and "Published Erratum" not in r.get("pubTypeList", {}).get("pubType", [])
+    ]
+    related_info_map = get_related_info({r.get("pmid") for r in filtered_results})
+
+    # Fetch OA statuses for all qualifying publications.
+    unique_dois = {r.get("doi") for r in filtered_results}
+    oa_map = {}
+    with ThreadPoolExecutor() as executor:
+        for raw_doi, accessibility in executor.map(
+            lambda doi: _fetch_oa_status(doi, email), unique_dois
+        ):
+            oa_map[raw_doi] = accessibility
+
     table = []
-    with requests.Session() as session:
-        for result in results:
-            pmid = result.get("pmid")
-            pub_type = result.get("pubTypeList").get("pubType")
-            if pmid in pmids and "Published Erratum" not in pub_type:
+    for result in filtered_results:
+        pmid = result.get("pmid")
 
-                # GENERAL INFO
-                url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
-                doi = result.get("doi")
+        # GENERAL INFO
+        url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}"
+        raw_doi = result.get("doi")
+        doi = "https://doi.org/" + raw_doi if raw_doi else None
+        journal_info = result.get("journalInfo").get("journal")
+        journal = journal_info.get(
+            "isoabbreviation", journal_info.get("medlineAbbreviation")
+        )
+        year = result.get("pubYear")
+        title = result.get("title").rstrip(".")
+        try:
+            authors = [
+                f"{author.get('firstName')} {author.get('lastName')}"
+                for author in result.get("authorList").get("author")
+            ]
+        except AttributeError:
+            authors = []  # There is not an author list with this publication.
+        abstract = (
+            result.get("abstractText", "No abstract available.")
+            .replace("<h4>", " ")
+            .replace("</h4>", ": ")
+            .lstrip()
+        )
+        keywords = result.get("keywordList", {}).get("keyword", "")
 
-                # Append the proxy if a DOI is found.
-                if doi:
-                    doi = "https://doi.org/" + doi
-                journal_info = result.get("journalInfo").get("journal")
-                journal = journal_info.get(
-                    "isoabbreviation", journal_info.get("medlineAbbreviation")
-                )
-                year = result.get("pubYear")
-                title = result.get("title").rstrip(".")
-                try:
-                    authors = [
-                        f"{author.get('firstName')} {author.get('lastName')}"
-                        for author in result.get("authorList").get("author")
-                    ]
-                except AttributeError:
-                    # There is not an author list with this publication.
-                    authors = []
-                abstract = (
-                    result.get("abstractText", "No abstract available.")
-                    .replace("<h4>", " ")
-                    .replace("</h4>", ": ")
-                    .lstrip()
-                )
-                keywords = result.get("keywordList", {}).get("keyword", "")
+        # ACCESSIBILITY
+        accessbility = oa_map.get(raw_doi, "Unknown")
+        if accessbility == "Open Access":
+            assay = tissue = tumor_type = ""
+        else:
+            assay = tissue = tumor_type = "Pending Annotation"
 
-                # ACCESSIBILITY
-                unpaywall_url = f"https://api.unpaywall.org/v2/{doi}?email={email}"
-                try:
-                    check_oa_status = session.get(unpaywall_url)
-                    check_oa_status.raise_for_status()
-                    is_open = json.loads(check_oa_status.content).get("is_oa")
-                    if is_open:
-                        accessbility = "Open Access"
-                        assay = tissue = tumor_type = ""
-                    else:
-                        accessbility = "Restricted Access"
-                        assay = tissue = tumor_type = "Pending Annotation"
-                except (requests.exceptions.HTTPError, json.JSONDecodeError):
-                    accessbility = "Unknown"
-                    assay = tissue = tumor_type = "Pending Annotation"
+        # GRANTS
+        grants = result.get("grantsList", {}).get("grant", [])
+        pattern = re.compile(r"(CA[ /-]?\d{6})", re.I)
+        related_grants = {
+            grant_number
+            for grant in grants
+            if grant.get("grantId")
+            for grant_number in parse_grant(pattern, grant.get("grantId"))
+            if grant_number in grants_list
+        }
+        if related_grants:
+            center = curr_grants.loc[
+                curr_grants["grantNumber"].isin(related_grants)
+            ]
+            consortium = ", ".join(set(center["consortium"].sum()))
+            themes = ", ".join(set(center["theme"].sum()))
+        else:
+            consortium = themes = ""
 
-                # GRANTS
-                grants = result.get("grantsList", {}).get("grant", [])
-                pattern = re.compile(r"(CA[ /-]?\d{6})", re.I)
-                related_grants = {
-                    grant_number
-                    for grant in grants
-                    if grant.get("grantId")
-                    for grant_number in parse_grant(pattern, grant.get("grantId"))
-                    if grant_number in grants_list
-                }
+        # RELATED INFORMATION
+        # Contains: GEO, SRA, dbGaP
+        related_info = related_info_map.get(pmid, {})
+        gse_ids = parse_geo(related_info.get("gds"))
+        srx, srp = parse_sra(related_info.get("sra"))
+        dbgaps = parse_dbgap(related_info.get("gap"))
+        dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
 
-                if related_grants:
-                    center = curr_grants.loc[
-                        curr_grants["grantNumber"].isin(related_grants)
-                    ]
-                    consortium = ", ".join(set(center["consortium"].sum()))
-                    themes = ", ".join(set(center["theme"].sum()))
-                else:
-                    consortium = themes = ""
-
-                # RELATED INFORMATION
-                # Contains: GEO, SRA, dbGaP
-                related_info = get_related_info(pmid)
-                gse_ids = parse_geo(related_info.get("gds"))
-                srx, srp = parse_sra(related_info.get("sra"))
-                dbgaps = parse_dbgap(related_info.get("gap"))
-                dataset_ids = {*gse_ids, *srx, *srp, *dbgaps}
-
-                # Conslidate all info into a single df, then append to list.
-                publication_info = {
-                    "Component": ["PublicationView"],
-                    "Publication Grant Number": [", ".join(related_grants)],
-                    "Publication Consortium Name": [consortium],
-                    "Publication Theme Name": [themes],
-                    "Publication Doi": [doi],
-                    "Publication Journal": [journal],
-                    "Pubmed Id": [int(pmid)],
-                    "Pubmed Url": [url],
-                    "Publication Title": [title],
-                    "Publication Year": [int(year)],
-                    "Publication Keywords": [", ".join(keywords)],
-                    "Publication Authors": [", ".join(authors)],
-                    "Publication Abstract": [abstract],
-                    "Publication Assay": [assay],
-                    "Publication Tumor Type": [tumor_type],
-                    "Publication Tissue": [tissue],
-                    "Publication Dataset Alias": [", ".join(dataset_ids)],
-                    "Publication Accessibility": [accessbility],
-                }
-                row = pd.DataFrame(publication_info)
-                table.append(row)
+        # Conslidate all info into a single df, then append to list.
+        publication_info = {
+            "Component": ["PublicationView"],
+            "Publication Grant Number": [", ".join(related_grants)],
+            "Publication Consortium Name": [consortium],
+            "Publication Theme Name": [themes],
+            "Publication Doi": [doi],
+            "Publication Journal": [journal],
+            "Pubmed Id": [int(pmid)],
+            "Pubmed Url": [url],
+            "Publication Title": [title],
+            "Publication Year": [int(year)],
+            "Publication Keywords": [", ".join(keywords)],
+            "Publication Authors": [", ".join(authors)],
+            "Publication Abstract": [abstract],
+            "Publication Assay": [assay],
+            "Publication Tumor Type": [tumor_type],
+            "Publication Tissue": [tissue],
+            "Publication Dataset Alias": [", ".join(dataset_ids)],
+            "Publication Accessibility": [accessbility],
+        }
+        row = pd.DataFrame(publication_info)
+        table.append(row)
     return pd.concat(table)
 
 
@@ -347,11 +390,11 @@ def find_publications(syn, grant_id, table_id, email):
     # If user provided a table ID, only scrape info from publications
     # not already listed in the provided table.
     if table_id:
-        table_name = syn.get(table_id).name
+        table_name = Table(id=table_id).get().name
         id_col = "Pubmed Id" if table_id == "syn52752398" else "pubMedId"
         print(f"Comparing with table: {table_name}...")
         current_pmids = (
-            Table.query(f'SELECT "{id_col}" FROM {table_id}')[id_col]
+            query(f'SELECT "{id_col}" FROM {table_id}')[id_col]
             .astype(str)
             .tolist()
         )
@@ -417,11 +460,6 @@ def main():
 
     Entrez.email = email
     Entrez.api_key = os.getenv("ENTREZ_API_KEY")
-
-    if not os.environ.get("PYTHONHTTPSVERIFY", "") and getattr(
-        ssl, "_create_unverified_context", None
-    ):
-        ssl._create_default_https_context = ssl._create_unverified_context
 
     table = find_publications(syn, args.grant_id, args.table_id.strip(), email)
     if table.empty:

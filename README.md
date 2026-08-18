@@ -109,7 +109,7 @@ based on the grant numbers found in the **Portal - Grants Merged** table ([syn21
 To change the table of grants to query PubMed with, use `-g` or `--grantview_id`. For example:
 
 ```
-python pubmed_crawler.py -t syn21868591 -g syn33657459
+uv run pubmed_crawler.py -t syn21868591 -g syn33657459
 ```
 
 When using a different table of grants, ensure that its schema has at least the following columns:
