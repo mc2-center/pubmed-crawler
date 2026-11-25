@@ -114,6 +114,10 @@ def get_pmids(grants):
     print("Getting PMIDs from NCBI... ")
     grant_numbers = grants["grantNumber"].tolist()
     query = "[Grant number] OR ".join(grant_numbers) + "[Grant number]"
+    # Preprints (bioRxiv, medRxiv, Research Square, arXiv) are not indexed in
+    # the portal. Exclude them here so they aren't counted as "new" each run;
+    # Europe PMC also wouldn't return them by bare PMID in pull_info anyway.
+    query = f"({query}) NOT preprint[pt]"
     handle = Entrez.esearch(
         db="pubmed", term=query, retmax=100_000, retmode="xml", sort="relevance"
     )
@@ -404,7 +408,7 @@ def find_publications(syn, grant_id, table_id, email):
     if pmids:
         print("Pulling information from publications... ")
         table = pull_info(pmids, grants, email)
-        print(f"  Publications pre-annotated: {len(table.index)}\n")
+        print(f"  Publications added to manifest: {len(table.index)}\n")
     else:
         table = pd.DataFrame()
         print()
